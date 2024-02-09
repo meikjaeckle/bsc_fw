@@ -3,6 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+#include <cstdint>
+#include <unistd.h> // usleep()
 #include "devices/GobelBms_PC200.h"
 #include "BmsData.h"
 #include "mqtt_t.h"

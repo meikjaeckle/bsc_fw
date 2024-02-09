@@ -6,7 +6,8 @@
 #ifndef Json_h
 #define Json_h
 
-#include <Arduino.h>
+#include <cstddef>
+#include <WString.h>
 
 class Json {
 public:

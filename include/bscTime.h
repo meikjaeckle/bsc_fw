@@ -6,7 +6,8 @@
 #ifndef BSCTIME_H
 #define BSCTIME_H
 
-#include "Arduino.h"
+#include <cstddef>
+#include <WString.h>
 
 void   initTime();
 bool   timeRunCyclic(bool bo_resetTimeout);

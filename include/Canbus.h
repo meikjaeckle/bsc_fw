@@ -6,7 +6,7 @@
 #ifndef CANBUS_H
 #define CANBUS_H
 
-#include <Arduino.h>
+#include <cstdint>
 
 #define CAN_BMS_COMMUNICATION_TIMEOUT 5000
 

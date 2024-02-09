@@ -7,7 +7,7 @@
 #ifndef BMSDATA_H
 #define BMSDATA_H
 
-#include <Arduino.h>
+#include <cstdint>
 #include "defines.h"
 
 
@@ -133,10 +133,10 @@ void setBmsErrors(uint8_t devNr, uint32_t value);
 
 uint8_t getBmsStateFETs(uint8_t devNr);
 void    setBmsStateFETs(uint8_t devNr, uint8_t value);
-boolean getBmsStateFETsCharge(uint8_t devNr);
-void    setBmsStateFETsCharge(uint8_t devNr, boolean value);
-boolean getBmsStateFETsDischarge(uint8_t devNr);
-void    setBmsStateFETsDischarge(uint8_t devNr, boolean value);
+bool getBmsStateFETsCharge(uint8_t devNr);
+void    setBmsStateFETsCharge(uint8_t devNr, bool value);
+bool getBmsStateFETsDischarge(uint8_t devNr);
+void    setBmsStateFETsDischarge(uint8_t devNr, bool value);
 
 uint16_t getBmsCellVoltageCrc(uint8_t devNr);
 void setBmsCellVoltageCrc(uint8_t devNr, uint16_t value);

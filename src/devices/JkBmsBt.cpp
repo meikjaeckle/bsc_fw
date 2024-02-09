@@ -3,7 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-
+#include <cstdint>
+#include <unistd.h> // usleep()
 #include "devices/JkBmsBt.h"
 #include "BmsData.h"
 #include "mqtt_t.h"

@@ -6,7 +6,6 @@
 #ifndef DALYBMS_H
 #define DALYBMS_H
 
-#include "Arduino.h"
 #include "defines.h"
 #include "devices/serialDevData.h"
 

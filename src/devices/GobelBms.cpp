@@ -3,7 +3,9 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include <exception>
+#include <cstdint>
+#include <stdexcept>
+#include <unistd.h> // usleep()
 #include "devices/GobelBms.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
