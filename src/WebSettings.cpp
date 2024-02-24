@@ -36,7 +36,7 @@ static sparse_hash_map<uint16_t, bool> settingValues_bo;
 static sparse_hash_map<uint16_t, std::string> settingValues_str;
 
 
-static char _buf[2000];
+static char _buf[2000] {};
 static String st_mSendBuf = "";
 static String str_lTmpGetString;
 std::vector<String> mOptions;
@@ -1725,7 +1725,7 @@ void addJsonElem(char *buf, int id, String val)
 void WebSettings::handleGetValues(WebServer *server)
 {
   uint32_t argName;
-  char data[4096] = { 0 };
+  char data[4096] {}; // TODO MEJ Enough stack memory ???
   //BSC_LOGI(TAG,"handleGetValues: args=%i",server->args());
   for(uint8_t i=0; i<server->args(); i++)
   {
