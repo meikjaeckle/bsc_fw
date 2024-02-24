@@ -211,7 +211,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   }
   getDefaultValuesFromNewKeys(parameterFile, 8);
 
-  if(bo_hasNewKeys) 
+  if(bo_hasNewKeys)
   {
     writeConfig();
     bo_hasNewKeys = false;
@@ -1295,58 +1295,47 @@ bool WebSettings::getBool(uint16_t name, uint8_t groupNr)
 
 
 //Load Data from Flash
-int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
+int32_t WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
 {
-  int ret=0;
-  uint16_t u32_name = getParmId(name, groupNr);
+  const uint16_t u32_name = getParmId(name, groupNr);
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
-      ret = prefs.getChar(String(u32_name).c_str());
-      break;
+      return prefs.getChar(String(u32_name).c_str());
     case PARAM_DT_I8:
-      ret = prefs.getChar(String(u32_name).c_str());
-      break;
+      return prefs.getChar(String(u32_name).c_str());
     case PARAM_DT_U16:
-      ret = prefs.getInt(String(u32_name).c_str());
-      break;
+      return prefs.getInt(String(u32_name).c_str());
     case PARAM_DT_I16:
-      ret = prefs.getInt(String(u32_name).c_str());
-      break;
+      return prefs.getInt(String(u32_name).c_str());
     case PARAM_DT_U32:
-      ret = prefs.getLong(String(u32_name).c_str());
-      break;
+      return prefs.getLong(String(u32_name).c_str());
     case PARAM_DT_I32:
-      ret = prefs.getLong(String(u32_name).c_str());
-      break;
+      return prefs.getLong(String(u32_name).c_str());
+    default:
+      return static_cast<int32_t>(0); // TODO: Shall we handle the unknown data type somehow???
   }
-  return ret;
 }
-int WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
+
+int32_t WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
 {
-  int ret=0;
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
-      ret = prefs.getChar(String(name).c_str());
-      break;
+      return prefs.getChar(String(name).c_str());
     case PARAM_DT_I8:
-      ret = prefs.getChar(String(name).c_str());
-      break;
+      return prefs.getChar(String(name).c_str());
     case PARAM_DT_U16:
-      ret = prefs.getInt(String(name).c_str());
-      break;
+      return prefs.getInt(String(name).c_str());
     case PARAM_DT_I16:
-      ret = prefs.getInt(String(name).c_str());
-      break;
+      return prefs.getInt(String(name).c_str());
     case PARAM_DT_U32:
-      ret = prefs.getLong(String(name).c_str());
-      break;
+      return prefs.getLong(String(name).c_str());
     case PARAM_DT_I32:
-      ret = prefs.getLong(String(name).c_str());
-      break;
+      return prefs.getLong(String(name).c_str());
+    default:
+      return static_cast<int32_t>(0); // TODO: Shall we handle the unknown data type somehow???
   }
-  return ret;
 }
 float WebSettings::getFloatFlash(uint16_t name, uint8_t groupNr)
 {

@@ -61,8 +61,8 @@ public:
   static bool     getBool(uint16_t name);
   static bool     getBool(uint16_t name, uint8_t groupNr);
 
-  static int     getIntFlash(uint16_t name, uint8_t groupNr, uint8_t dataType);
-  static int     getIntFlash(uint16_t name, uint8_t groupNr);
+  static int32_t getIntFlash(uint16_t name, uint8_t groupNr, uint8_t dataType);
+  static int32_t getIntFlash(uint16_t name, uint8_t groupNr);
   static float   getFloatFlash(uint16_t name, uint8_t groupNr);
   static float   getFloatFlash(uint16_t name);
   static boolean getBoolFlash(uint16_t name, uint8_t groupNr);
