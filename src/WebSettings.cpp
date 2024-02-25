@@ -1821,12 +1821,6 @@ void WebSettings::handleSetValues(WebServer *server)
 {
   //BSC_LOGI(TAG,"handleSetValues args=%i",server->args());
 
-  uint8_t u8_storeInFlash,u8_datatype,ret,u8_lParamGroup;
-  uint16_t u16_argName,u16_lParamId;
-  uint32_t u32_argName;
-  String argValue;
-
-  //BSC_LOGI(TAG,"handleSetValues: args=%i",server->args());
   for(uint8_t i=0; i<server->args(); i++)
   {
     //BSC_LOGI(TAG,"handleSetValues: argNr=%i",i);
@@ -1835,12 +1829,12 @@ void WebSettings::handleSetValues(WebServer *server)
     {
       //BSC_LOGI(TAG,"handleSetValues argNr=%i, argName=%s, val=%s", i, server->argName(i).c_str(), server->arg(i).c_str());
 
-      u32_argName = server->argName(i).toInt();
-      argValue = server->arg(i);
+      const uint32_t u32_argName = server->argName(i).toInt();
+      String argValue = server->arg(i);
 
-      u8_storeInFlash = ((u32_argName>>16)&0xff);
-      u8_datatype = ((u32_argName>>24)&0xff);
-      u16_argName = (u32_argName&0xFFFF);
+      const uint8_t u8_storeInFlash = ((u32_argName>>16)&0xff);
+      const uint8_t u8_datatype = ((u32_argName>>24)&0xff);
+      const uint16_t u16_argName = (u32_argName&0xFFFF);
 
       if(u8_storeInFlash==1) //Store  in Flash
       {
@@ -1849,40 +1843,40 @@ void WebSettings::handleSetValues(WebServer *server)
         #endif
 
         //Spezielle Parameter vor dem Speichern ändern
-        u16_lParamId=0;
-        u8_lParamGroup=0;
+        uint16_t u16_lParamId=0;
+        uint8_t u8_lParamGroup=0;
         getIdFromParamId(u16_argName,u16_lParamId,u8_lParamGroup);
         if(u16_lParamId==ID_PARAM_SS_BTDEVMAC) argValue.toLowerCase();
 
-        ret=0xFF;
+        // NOTE: Casting return to void to signal the compiler it is intended to ignore the return value.
         switch(u8_datatype)
         {
           case PARAM_DT_U8:
-            ret=prefs.putChar(String(u16_argName).c_str(),(uint8_t)argValue.toInt());
+            (void)prefs.putChar(String(u16_argName).c_str(),(uint8_t)argValue.toInt());
             break;
           case PARAM_DT_I8:
-            ret=prefs.putChar(String(u16_argName).c_str(),(int8_t)argValue.toInt());
+            (void)prefs.putChar(String(u16_argName).c_str(),(int8_t)argValue.toInt());
             break;
           case PARAM_DT_U16:
-            ret=prefs.putInt(String(u16_argName).c_str(),(uint16_t)argValue.toInt());
+            (void)prefs.putInt(String(u16_argName).c_str(),(uint16_t)argValue.toInt());
             break;
           case PARAM_DT_I16:
-            ret=prefs.putInt(String(u16_argName).c_str(),(int16_t)argValue.toInt());
+            (void)prefs.putInt(String(u16_argName).c_str(),(int16_t)argValue.toInt());
             break;
           case PARAM_DT_U32:
-            ret=prefs.putLong(String(u16_argName).c_str(),argValue.toInt());
+            (void)prefs.putLong(String(u16_argName).c_str(),argValue.toInt());
             break;
           case PARAM_DT_I32:
-            ret=prefs.putLong(String(u16_argName).c_str(),argValue.toInt());
+            (void)prefs.putLong(String(u16_argName).c_str(),argValue.toInt());
             break;
           case PARAM_DT_FL:
-            ret=prefs.putFloat(String(u16_argName).c_str(),argValue.toFloat());
+            (void)prefs.putFloat(String(u16_argName).c_str(),argValue.toFloat());
             break;
           case PARAM_DT_ST:
-            ret=prefs.putString(String(u16_argName).c_str(),argValue);
+            (void)prefs.putString(String(u16_argName).c_str(),argValue);
             break;
           case PARAM_DT_BO:
-            ret=prefs.putBool(String(u16_argName).c_str(),argValue.toInt());
+            (void)prefs.putBool(String(u16_argName).c_str(),argValue.toInt());
             break;
         }
       }
