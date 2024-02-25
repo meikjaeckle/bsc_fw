@@ -46,7 +46,7 @@
 class WebSettings {
 public:
   WebSettings();
-  void initWebSettings(const char *parameter, String confName, String configfile);
+  void initWebSettings(const char *parameter, const String &confName, const String &configfile);
 
   //Parameterfile
   boolean deleteConfig();
@@ -68,12 +68,12 @@ public:
   static boolean getBoolFlash(uint16_t name, uint8_t groupNr);
   static boolean getBoolFlash(uint16_t name);
   static String  getStringFlash(uint16_t name, uint8_t groupNr);
-  String getStringFlash(String name);
+  String getStringFlash(const String &name);
   String getStringFlash(uint16_t name);
 
 
   //setButtons
-  void setButtons(uint8_t buttons, String btnLabel);
+  void setButtons(uint8_t buttons, const String &btnLabel);
 
   //register onSave callback
   void registerOnSave(void (*callback)());
@@ -81,13 +81,14 @@ public:
   void registerOnButton2(void (*callback)());
   void registerOnButton3(void (*callback)());
 
-  void setTimerHandlerName(String handlerName, uint16_t timerSec=1000);
+  void setTimerHandlerName(const String &handlerName, uint16_t timerSec=1000);
   void handleHtmlFormRequest(WebServer * server);
   void handleGetValues(WebServer *server);
   void handleSetValues(WebServer *server);
 
-  void setParameter(uint16_t name, uint8_t group, String value, uint8_t u8_dataType);
+  void setParameter(uint16_t name, uint8_t group, const String &value, uint8_t u8_dataType);
 
+// TODO MEJ Helper methods, no access to members
   static uint16_t getParmId(uint16_t id, uint8_t groupIdx);
   static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);
 
@@ -107,8 +108,8 @@ private:
   //Parameterfile
   boolean readConfig();
 
-  uint32_t copyFile(String fileSrc, String fileDst);
-  uint32_t calcCrc(String fileSrc);
+  uint32_t copyFile(const String &fileSrc, const String &fileDst);
+  uint32_t calcCrc(const String &fileSrc);
 
   void getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos);
   void buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos);
@@ -116,10 +117,10 @@ private:
   //void readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos);
 
   bool isKeyExist(uint16_t key, uint8_t u8_dataType);
-  void setString(uint16_t name, String value, uint8_t u8_dataType);
+  void setString(uint16_t name, const String &value, uint8_t u8_dataType);
   void setInt(uint16_t name, int32_t value);
 
-  String   getJson_Key(const char *parameter, String key, uint8_t idx, uint32_t startPos, String defaultValue); //Universal über parameter key
+  String   getJson_Key(const char *parameter, const String &key, uint8_t idx, uint32_t startPos, const String &defaultValue); //Universal über parameter key
   uint8_t  getJsonSize(const char *parameter, uint8_t idx, uint32_t startPos);
   uint8_t  getJsonGroupsize(const char *parameter, uint8_t idx, uint32_t startPos);
   uint32_t getJsonName(const char *parameter, uint8_t idx, uint32_t startPos);
@@ -133,18 +134,18 @@ private:
   uint32_t getJsonOptionsMax(const char *parameter, uint8_t idx, uint32_t startPos);
   std::vector<String> getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos);
   std::vector<String> getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos);
-  String   getJsonArrValue(const char *parameter, String str_key1, String str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos);
+  String   getJsonArrValue(const char *parameter, const String &str_key1, const String &str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos);
 
-  void createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
-  void createHtmlTextarea(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlNumber(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlRange(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlCheckbox(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlStartSelect(char * buf, uint64_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos);
-  void createHtmlAddSelectOption(char * buf, String option, String label, String value);
-  void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType);
-  void createHtmlAddMultiOption(char * buf, uint16_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value, uint8_t u8_dataType);
+  void createHtmlTextfield      (char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
+  void createHtmlTextarea       (char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlNumber         (char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlFloat          (char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlRange          (char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlCheckbox       (char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlStartSelect    (char * buf, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos);
+  void createHtmlAddSelectOption(char * buf, const String &option, const String &label, const String &value);
+  void createHtmlStartMulti     (char * buf, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType);
+  void createHtmlAddMultiOption (char * buf, uint16_t name, const uint64_t &nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, const String &label, uint32_t value, uint8_t u8_dataType);
 
   void (*fn_mOnButtonSave)() = NULL;
   void (*fn_mOnButton1)() = NULL;

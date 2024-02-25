@@ -28,13 +28,20 @@ static const char * TAG = "WEB_SETTINGS";
 
 static SemaphoreHandle_t mParamMutex = NULL;
 
-static sparse_hash_map<uint16_t, int8_t> settingValues_i8;
-static sparse_hash_map<uint16_t, int16_t> settingValues_i16;
-static sparse_hash_map<uint16_t, int32_t> settingValues_i32;
-static sparse_hash_map<uint16_t, float> settingValues_fl;
-static sparse_hash_map<uint16_t, bool> settingValues_bo;
-static sparse_hash_map<uint16_t, std::string> settingValues_str;
+using spp::sparse_hash_map;
+using SettingsMapI8_t     = spp::sparse_hash_map<uint16_t, int8_t>;
+using SettingsMapI16_t    = spp::sparse_hash_map<uint16_t, int16_t>;
+using SettingsMapI32_t    = spp::sparse_hash_map<uint16_t, int32_t>;
+using SettingsMapFloat_t  = spp::sparse_hash_map<uint16_t, float>;
+using SettingsMapBool_t   = spp::sparse_hash_map<uint16_t, bool>;
+using SettingsMapString_t = spp::sparse_hash_map<uint16_t, String>;
 
+static SettingsMapI8_t     settingValues_i8;
+static SettingsMapI16_t    settingValues_i16;
+static SettingsMapI32_t    settingValues_i32;
+static SettingsMapFloat_t  settingValues_fl;
+static SettingsMapBool_t   settingValues_bo;
+static SettingsMapString_t settingValues_str;
 
 static char _buf[2000] {};
 static String st_mSendBuf = "";
@@ -149,7 +156,7 @@ bool isNumber(const String& str)
   return true;
 }
 
-String getValue(String data, char separator, int index)
+String getValue(const String &data, char separator, int index)
 {
   int found = 0;
   int strIndex[] = {0, -1};
@@ -177,25 +184,26 @@ WebSettings::WebSettings() {
 };
 
 
-void WebSettings::initWebSettings(const char *parameter, String confName, String configfile)
+void WebSettings::initWebSettings(const char *parameter, const String &confName, const String &configfile)
 {
   static bool paramFileRead=false;
   u8_mJsonArraySize = 0;
-  str_mConfName = confName.c_str();
-  str_mConfigfile = configfile.c_str();
+  str_mConfName = confName;
+  str_mConfigfile = configfile;
 
   parameterFile = parameter;
 
+  // TODO MEJ Pass the filesystem as parameter
   if (!SPIFFS.begin())
   {
     BSC_LOGE(TAG,"Mount Failed");
-    SPIFFS.format();
+    SPIFFS.format(); // Wouldn`t it be better to handle this already outside of this class, while initializing the filesystem?
     SPIFFS.begin();
   }
 
   if (!prefs.begin("prefs"))
   {
-    #ifdef WEBSET_DEBUG
+    #ifdef WEBSET_DEBUG // TODO MEJ: Why is the error only logged in debug mode?
     BSC_LOGE(TAG,"Fehler beim Oeffnen des NVS-Namespace");
     #endif
   }
@@ -222,7 +230,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   #endif
 }
 
-void WebSettings::setTimerHandlerName(String handlerName, uint16_t timerSec)
+void WebSettings::setTimerHandlerName(const String &handlerName, uint16_t timerSec)
 {
   str_mAjaxGetDataTimerHandlerName = handlerName;
   u16_mAjaxGetDataTimerSec = timerSec;
@@ -475,7 +483,7 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
 void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos)
 {
   uint8_t g, optionsCnt, optionGroupSize, jsonSize, u8_dataType, u8_jsonLabelOffset;
-  uint16_t u32_jsonName, jsonNameBase;
+  uint16_t u16_jsonName, jsonNameBase;
   uint64_t u64_jsonName;
   String jsonLabel, st_jsonLabelEntry, strlHelp;
   boolean bo_lIsGroup, bo_loadFromFlash;
@@ -492,8 +500,8 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
 
     bo_loadFromFlash=false;
     u8_dataType=0;
-    u32_jsonName = getParmId(jsonNameBase,u8_mAktOptionGroupNr);
-    u64_jsonName = u32_jsonName;
+    u16_jsonName = getParmId(jsonNameBase,u8_mAktOptionGroupNr);
+    u64_jsonName = u16_jsonName;
 
     //Load from RAM or Flash
     u8_dataType = (uint8_t)getJson_Key(parameter, "dt", a, jsonStartPos, "").toInt();
@@ -542,45 +550,45 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           sprintf(_buf,"<tr><td colspan='3'><hr style='border:none; border-top:1px dashed black; height:1px; color:#000000; background:transparent'></td></tr>");
           sendContentHtml(server,_buf,false);
         }
-        if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE && optionGroupSize>1 && !jsonLabel.equals(""))
+        if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE && optionGroupSize>1 && !jsonLabel.isEmpty())
         {
           sprintf(_buf,HTML_GROUP_END_DETAILS);
           sendContentHtml(server,_buf,false);
         }
         u8_mAktOptionGroupNr = 0;
         break;
-      case HTML_INPUTTEXT:
-        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"text",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+      case HTML_INPUTTEXT: // TODO MEJ Why is u64_jsonName passed as first argument of getString(..). The getString parameter 1 itself is only uint16_t
+        createHtmlTextfield(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, "text", getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTTEXTAREA:
-        createHtmlTextarea(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlTextarea(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
           break;
       case HTML_INPUTPASSWORD:
-        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"password",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlTextfield(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, "password", getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTDATE:
-        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"date",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlTextfield(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, "date", getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTTIME:
-        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"time",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlTextfield(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, "time", getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTCOLOR:
-        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"color",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlTextfield(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, "color", getString(u64_jsonName,bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTFLOAT:
-        createHtmlFloat(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlFloat(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTNUMBER:
-        createHtmlNumber(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlNumber(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTRANGE:
-        createHtmlRange(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlRange(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, getString(u64_jsonName, bo_loadFromFlash, u8_dataType));
         break;
       case HTML_INPUTCHECKBOX:
-        createHtmlCheckbox(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        createHtmlCheckbox(_buf, u16_jsonName, u64_jsonName, jsonLabel, parameter, a, jsonStartPos, getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
       case HTML_INPUTSELECT:
-        createHtmlStartSelect(_buf,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos);
+        createHtmlStartSelect(_buf, u64_jsonName, jsonLabel, parameter, a, jsonStartPos);
         optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
         mOptions = getJsonOptionValues(parameter,a,jsonStartPos);
         mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
@@ -590,16 +598,16 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           String str_lNewLabel = mOptionLabels[j];
           String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
           if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
-          createHtmlAddSelectOption(_buf,mOptions.at(j),str_lNewLabel,getString(u32_jsonName,bo_loadFromFlash,u8_dataType));
+          createHtmlAddSelectOption(_buf, mOptions.at(j), str_lNewLabel, getString(u16_jsonName,bo_loadFromFlash,u8_dataType));
         }
         mOptions.clear();
         mOptionLabels.clear();
         sendContentHtml(server,_buf,false);
-        sprintf(_buf,HTML_ENTRY_SELECT_END,String(u32_jsonName));
+        sprintf(_buf,HTML_ENTRY_SELECT_END,String(u16_jsonName));
         break;
       case HTML_INPUTMULTICHECK:
       case HTML_INPUTMULTICHECK_COLLAPSIBLE:
-        createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos, u8_lJsonType);
+        createHtmlStartMulti(_buf, jsonLabel, parameter, a, jsonStartPos, u8_lJsonType);
         optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
         mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
         for (uint8_t j = 0 ; j<optionsCnt; j++)
@@ -607,8 +615,8 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           sendContentHtml(server,_buf,false);
           String str_lNewLabel = mOptionLabels[j];
           String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
-          if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
-          createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,str_lNewLabel,(uint32_t)getInt(u32_jsonName,u8_dataType),u8_dataType);
+          if(str_lDes.length()>0) str_lNewLabel += " (" + str_lDes + ")";
+          createHtmlAddMultiOption(_buf, u16_jsonName, u64_jsonName, parameter, a, jsonStartPos, j, str_lNewLabel, (uint32_t)getInt(u16_jsonName,u8_dataType), u8_dataType);
         }
         sendContentHtml(server,_buf,false);
         if(u8_lJsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE) strcpy_P(_buf,HTML_ENTRY_MULTI_COLLAPSIBLE_END);
@@ -747,98 +755,148 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
   #endif
 }
 
-
-void WebSettings::createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value)
+void WebSettings::createHtmlTextfield(char * buf,
+                                      uint16_t name,
+                                      const uint64_t &nameExt,
+                                      const String &label,
+                                      const char *parameter,
+                                      uint8_t idx,
+                                      uint32_t startPos,
+                                      const char * type,
+                                      String value) // Pass by copy because we may modify the value
 {
-  if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  sprintf(buf,HTML_ENTRY_TEXTFIELD,label->c_str(),type,value.c_str(),String(*nameExt).c_str(),getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
+  // Get default value from Json if given value is empty.
+  if(value.isEmpty())
+    value = std::move(getJsonDefault(parameter, idx, startPos));
+
+  sprintf(buf, HTML_ENTRY_TEXTFIELD, label.c_str(), type, value.c_str(), String(nameExt).c_str(), getJson_Key(parameter, "unit", idx, startPos, "").c_str(), String(name));
 }
 
-void WebSettings::createHtmlTextarea(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlTextarea(char * buf,
+                                     uint16_t name,
+                                     const uint64_t &nameExt,
+                                     const String &label,
+                                     const char *parameter,
+                                     uint8_t idx,
+                                     uint32_t startPos,
+                                     String value) // Pass by copy because we may modify the value
 {
-  if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  sprintf(buf,HTML_ENTRY_AREA,label->c_str(),getJsonOptionsMax(parameter, idx, startPos),getJsonOptionsMin(parameter, idx, startPos),String(*nameExt).c_str(), value.c_str(), String(*name));
+  if(value.isEmpty())
+    value = std::move(getJsonDefault(parameter, idx, startPos));
+
+  sprintf(buf, HTML_ENTRY_AREA, label.c_str(),
+                                getJsonOptionsMax(parameter, idx, startPos),
+                                getJsonOptionsMin(parameter, idx, startPos),
+                                String(nameExt).c_str(),
+                                value.c_str(),
+                                String(name));
 }
 
-void WebSettings::createHtmlNumber(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlNumber(char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
-  if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  sprintf(buf,HTML_ENTRY_NUMBER,label->c_str(),getJsonOptionsMin(parameter, idx, startPos),
-    getJsonOptionsMax(parameter, idx, startPos), value.c_str(),String(*nameExt).c_str(),
-    getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
+  if(value.isEmpty())
+    value = std::move(getJsonDefault(parameter, idx, startPos));
+
+  sprintf(buf, HTML_ENTRY_NUMBER, label.c_str(),
+                                  getJsonOptionsMin(parameter, idx, startPos),
+                                  getJsonOptionsMax(parameter, idx, startPos),
+                                  value.c_str(),
+                                  String(nameExt).c_str(),
+                                  getJson_Key(parameter, "unit", idx, startPos, "").c_str(),
+                                  String(name));
 }
 
-void WebSettings::createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlFloat(char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
-  if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  sprintf(buf,HTML_ENTRY_FLOAT,label->c_str(),
-    getJson_Key(parameter, "step", idx, startPos, "0.01").c_str(),
-    getJsonOptionsMin(parameter, idx, startPos),
-    getJsonOptionsMax(parameter, idx, startPos), value.c_str(),String(*nameExt).c_str(),
-    getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
+  if(value.isEmpty())
+    value = std::move(getJsonDefault(parameter, idx, startPos));
+
+  sprintf(buf, HTML_ENTRY_FLOAT, label.c_str(),
+                                 getJson_Key(parameter, "step", idx, startPos, "0.01").c_str(),
+                                 getJsonOptionsMin(parameter, idx, startPos),
+                                 getJsonOptionsMax(parameter, idx, startPos),
+                                 value.c_str(),
+                                 String(nameExt).c_str(),
+                                 getJson_Key(parameter, "unit", idx, startPos, "").c_str(),
+                                 String(name));
 }
 
-void WebSettings::createHtmlRange(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlRange(char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
-  if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  sprintf(buf,HTML_ENTRY_RANGE, label->c_str(), getJsonOptionsMin(parameter, idx, startPos),
-    getJsonOptionsMin(parameter, idx, startPos), getJsonOptionsMax(parameter, idx, startPos),
-    value.c_str(), nameExt,  getJsonOptionsMax(parameter, idx, startPos),String(*name));
+  if(value.isEmpty())
+    value = std::move(getJsonDefault(parameter, idx, startPos));
+
+  sprintf(buf,HTML_ENTRY_RANGE, label.c_str(),
+                                getJsonOptionsMin(parameter, idx, startPos),
+                                getJsonOptionsMin(parameter, idx, startPos),
+                                getJsonOptionsMax(parameter, idx, startPos),
+                                value.c_str(),
+                                String(nameExt).c_str(), // MEJ TODO: nameExt was passed befor as pointer
+                                getJsonOptionsMax(parameter, idx, startPos),
+                                String(name));
 }
 
-void WebSettings::createHtmlCheckbox(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlCheckbox(char * buf, uint16_t name, const uint64_t &nameExt, const String &label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
-  if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  String sValue = String(*name);
+  if(value.isEmpty())
+    value = std::move(getJsonDefault(parameter, idx, startPos));
+
+  String sValue = String(name); // TODO MEJ Is this copy really needed
   if (!value.equals("0")) {
-    sprintf(buf,HTML_ENTRY_CHECKBOX,label->c_str(),"checked",String(*nameExt).c_str(),String(*name));
+    sprintf(buf, HTML_ENTRY_CHECKBOX, label.c_str(), "checked", String(nameExt).c_str(), String(name)); // TODO MEJ Why is last parameter String(name) would expect .c_str()
   } else {
-    sprintf(buf,HTML_ENTRY_CHECKBOX,label->c_str(),"",String(*nameExt).c_str(),sValue.c_str());
+    sprintf(buf, HTML_ENTRY_CHECKBOX, label.c_str(), "", String(nameExt).c_str(), sValue.c_str());
   }
 }
 
-void WebSettings::createHtmlStartSelect(char * buf, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos)
+void WebSettings::createHtmlStartSelect(char * buf, const uint64_t &nameExt, const String &label, const char * /* parameter */, uint8_t /* idx */, uint32_t /* startPos */)
 {
-  sprintf(buf,HTML_ENTRY_SELECT_START,label->c_str(),String(*nameExt).c_str());
+  sprintf(buf, HTML_ENTRY_SELECT_START, label.c_str(), String(nameExt).c_str());
 }
 
-void WebSettings::createHtmlAddSelectOption(char * buf, String option, String label, String value)
+void WebSettings::createHtmlAddSelectOption(char * buf, const String &option, const String &label, const String &value)
 {
   if (option.equals(value))
-  {
-    sprintf(buf,HTML_ENTRY_SELECT_OPTION,option.c_str(),"selected",label.c_str());
-  } else {
-    sprintf(buf,HTML_ENTRY_SELECT_OPTION,option.c_str(),"",label.c_str());
-  }
+    sprintf(buf, HTML_ENTRY_SELECT_OPTION, option.c_str(), "selected", label.c_str());
+  else
+    sprintf(buf, HTML_ENTRY_SELECT_OPTION, option.c_str(), "", label.c_str());
 }
 
-void WebSettings::createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType)
+void WebSettings::createHtmlStartMulti(char * buf, const String &label, const char */* parameter */, uint8_t /* idx */, uint32_t /* startPos */, uint8_t u8_jsonType)
 {
   if(u8_jsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE)
   {
-    uint32_t u32_lMillis = millis();
-    sprintf(buf,HTML_ENTRY_MULTI_COLLAPSIBLE_START,label->c_str(),u32_lMillis,u32_lMillis,label->c_str());
+    const int32_t u32_lMillis = millis();
+    sprintf(buf, HTML_ENTRY_MULTI_COLLAPSIBLE_START, label.c_str(), u32_lMillis, u32_lMillis, label.c_str());
   }
   else
   {
-    sprintf(buf,HTML_ENTRY_MULTI_START,label->c_str());
+    sprintf(buf, HTML_ENTRY_MULTI_START, label.c_str());
   }
 }
 
-void WebSettings::createHtmlAddMultiOption(char * buf, uint16_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value, uint8_t u8_dataType)
+void WebSettings::createHtmlAddMultiOption(char * buf,
+                                           uint16_t name,
+                                           const uint64_t &nameExt,
+                                           const char *parameter,
+                                           uint8_t idx,
+                                           uint32_t startPos,
+                                           uint8_t option,
+                                           const String &label,
+                                           uint32_t value,
+                                           uint8_t u8_dataType)
 {
   #ifdef WEBSET_DEBUG
   BSC_LOGD(TAG,"createHtmlAddMultiOption: option=%i, value=%i",option,value);
   #endif
 
-  if(!isKeyExist(*name,u8_dataType)) value = getJsonDefault(parameter, idx, startPos).toInt();
+  if(!isKeyExist(name,u8_dataType))
+    value = getJsonDefault(parameter, idx, startPos).toInt();
 
-  if((value&(1<<option))==(1<<option))
-  {
-    sprintf(buf,HTML_ENTRY_MULTI_OPTION,String(*nameExt).c_str(),option,"checked",label.c_str());
-  } else {
-    sprintf(buf,HTML_ENTRY_MULTI_OPTION,String(*nameExt).c_str(),option,"",label.c_str());
-  }
+  if((value & (1 << option)) == (1 << option))
+    sprintf(buf, HTML_ENTRY_MULTI_OPTION, String(nameExt).c_str(), option, "checked", label.c_str());
+  else
+    sprintf(buf, HTML_ENTRY_MULTI_OPTION, String(nameExt).c_str(), option, "", label.c_str());
 }
 
 
@@ -852,7 +910,7 @@ uint8_t WebSettings::getJsonSize(const char *parameter, uint8_t idx, uint32_t st
   {
     if (isNumber(retStr))
     {
-      return atoi(retStr.c_str());
+      return atoi(retStr.c_str()); // TODO MEJ Is it garanteed, that retStr number is < 256
     }
     else
     {
@@ -1001,7 +1059,7 @@ std::vector<String> WebSettings::getJsonOptionLabels(const char *parameter, uint
   return labels;
 }
 
-String WebSettings::getJsonArrValue(const char *parameter, String str_key1, String str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos)
+String WebSettings::getJsonArrValue(const char *parameter, const String &str_key1, const String &str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> options;
   String retStr = "";
@@ -1078,7 +1136,7 @@ uint32_t WebSettings::getJsonOptionsMax(const char *parameter, uint8_t idx, uint
 }
 
 //Universal
-String WebSettings::getJson_Key(const char *parameter, String key, uint8_t idx, uint32_t startPos, String defaultValue)
+String WebSettings::getJson_Key(const char *parameter, const String &key, uint8_t idx, uint32_t startPos, const String &defaultValue)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
@@ -1128,13 +1186,13 @@ bool WebSettings::isKeyExist(uint16_t key, uint8_t u8_dataType)
 }
 
 
-void WebSettings::setParameter(uint16_t name, uint8_t group, String value, uint8_t u8_dataType)
+void WebSettings::setParameter(uint16_t name, uint8_t group, const String &value, uint8_t u8_dataType)
 {
   setString(getParmId(name, group), value, u8_dataType);
 }
 
 
-void WebSettings::setString(uint16_t name, String value, uint8_t u8_dataType)
+void WebSettings::setString(uint16_t name, const String &value, uint8_t u8_dataType)
 {
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG,"setString(): name=%i, value=%s, dataType=%i",name,value.c_str(),u8_dataType);
@@ -1164,7 +1222,7 @@ void WebSettings::setString(uint16_t name, String value, uint8_t u8_dataType)
       settingValues_fl[name] = value.toFloat();
       break;
     case PARAM_DT_ST:
-      settingValues_str[name] = value.c_str();
+      settingValues_str[name] = value;
       break;
     case PARAM_DT_BO:
       settingValues_bo[name] = (bool)value.toInt();
@@ -1175,66 +1233,63 @@ void WebSettings::setString(uint16_t name, String value, uint8_t u8_dataType)
 
 String WebSettings::getString(uint16_t name, boolean fromFlash, uint8_t u8_dataType)
 {
-  std::string ret = "";
-  String str_ret = "";
-
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG,"getString(): name=%i, fromFlash=%d, dataType=%i",name,fromFlash,u8_dataType);
   #endif
+
+  String ret;
 
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
-      if(fromFlash) ret = String(prefs.getChar(String(name).c_str())).c_str();
-      else str_ret = String((uint8_t)settingValues_i8[name]);
+      if(fromFlash) ret = String(prefs.getChar(String(name).c_str()));
+      else ret = String((uint8_t)settingValues_i8[name]);
       break;
     case PARAM_DT_I8:
-      if(fromFlash) ret = String(prefs.getChar(String(name).c_str())).c_str();
-      else str_ret = String(settingValues_i8[name]);
+      if(fromFlash) ret = String(prefs.getChar(String(name).c_str()));
+      else ret = String(settingValues_i8[name]);
       break;
     case PARAM_DT_U16:
-      if(fromFlash) ret = String(prefs.getInt(String(name).c_str())).c_str();
-      else str_ret = String((uint16_t)settingValues_i16[name]);
+      if(fromFlash) ret = String(prefs.getInt(String(name).c_str()));
+      else ret = String((uint16_t)settingValues_i16[name]);
       break;
     case PARAM_DT_I16:
-      if(fromFlash) ret = String(prefs.getInt(String(name).c_str())).c_str();
-      else str_ret = String(settingValues_i16[name]);
+      if(fromFlash) ret = String(prefs.getInt(String(name).c_str()));
+      else ret = String(settingValues_i16[name]);
       break;
     case PARAM_DT_U32:
-      if(fromFlash) ret = String(prefs.getLong(String(name).c_str())).c_str();
-      else str_ret = String((uint32_t)settingValues_i32[name]);
+      if(fromFlash) ret = String(prefs.getLong(String(name).c_str()));
+      else ret = String((uint32_t)settingValues_i32[name]);
       break;
     case PARAM_DT_I32:
-      if(fromFlash) ret = String(prefs.getLong(String(name).c_str())).c_str();
-      else str_ret = String(settingValues_i32[name]);
+      if(fromFlash) ret = String(prefs.getLong(String(name).c_str()));
+      else ret = String(settingValues_i32[name]);
       break;
     case PARAM_DT_FL:
-      if(fromFlash) ret = String((prefs.getFloat(String(name).c_str())),4).c_str();
-      else str_ret = String(settingValues_fl[name]);
+      if(fromFlash) ret = String((prefs.getFloat(String(name).c_str())),4);
+      else ret = String(settingValues_fl[name]); // TODO MEJ Do we need "4" decimal places here as well?
       break;
     case PARAM_DT_ST:
-      if(fromFlash) ret = String(prefs.getString(String(name).c_str())).c_str();
-      else str_ret = String(settingValues_str[name].c_str());
+      if(fromFlash) ret = prefs.getString(String(name).c_str());
+      else ret = settingValues_str[name];
       break;
     case PARAM_DT_BO:
-      if(fromFlash) ret = String(prefs.getBool(String(name).c_str())).c_str();
-      else str_ret = String(settingValues_bo[name]);
+      if(fromFlash) ret = String(prefs.getBool(String(name).c_str()));
+      else ret = String(settingValues_bo[name]);
       break;
   }
   xSemaphoreGive(mParamMutex);
 
-  if(fromFlash) return String(ret.c_str());
-  else return str_ret;
+  return ret;
 }
 
 String WebSettings::getString(uint16_t name, uint8_t groupNr)
 {
-  std::string ret = "";
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
-  ret = settingValues_str[getParmId(name,groupNr)];
+  const String ret = settingValues_str[getParmId(name,groupNr)];
   xSemaphoreGive(mParamMutex);
-  return String(ret.c_str());
+  return ret;
 }
 
 int32_t WebSettings::getInt(uint16_t name, uint8_t u8_dataType)
@@ -1360,10 +1415,12 @@ String WebSettings::getStringFlash(uint16_t name, uint8_t groupNr)
   uint16_t u32_name = getParmId(name, groupNr);
   return prefs.getString(String(u32_name).c_str());
 }
-String WebSettings::getStringFlash(String name)
+String WebSettings::getStringFlash(const String &name)
 {
-  if(name.equals(""))return "";
-  return prefs.getString(name.c_str());
+  if(name.isEmpty())
+    return String();
+  else
+    return prefs.getString(name.c_str());
 }
 String WebSettings::getStringFlash(uint16_t name)
 {
@@ -1499,8 +1556,6 @@ boolean WebSettings::readConfig()
 //Schreiben der Parameter in Datei
 boolean WebSettings::writeConfig()
 {
-  //std::string val;
-  String val2;
   uint32_t name;
 
   #ifdef WEBSET_DEBUG
@@ -1521,10 +1576,9 @@ boolean WebSettings::writeConfig()
     for (const auto& n : settingValues_str)
     {
       name = n.first;
-      std::string val = n.second;
-      val2 = String(val.c_str());
-      val2.replace("\n","~");
-      f.printf("%lu=STR%s\n",name,val2.c_str());
+      String val(n.second);
+      val.replace("\n","~");
+      f.printf("%lu=STR%s\n",name,val.c_str());
     }
 
     //u8
@@ -1608,7 +1662,7 @@ boolean WebSettings::deleteConfig()
   return SPIFFS.remove(str_mConfigfile.c_str());
 }
 
-uint32_t WebSettings::copyFile(String fileSrc, String fileDst)
+uint32_t WebSettings::copyFile(const String &fileSrc, const String &fileDst)
 {
   char buf[64];
   uint32_t crc=0;
@@ -1632,7 +1686,7 @@ uint32_t WebSettings::copyFile(String fileSrc, String fileDst)
   return crc;
 }
 
-uint32_t WebSettings::calcCrc(String fileSrc)
+uint32_t WebSettings::calcCrc(const String &fileSrc)
 {
   char buf[64];
   uint32_t crc=0;
@@ -1645,7 +1699,7 @@ uint32_t WebSettings::calcCrc(String fileSrc)
   return crc;
 }
 
-void WebSettings::setButtons(uint8_t buttons, String btnLabel)
+void WebSettings::setButtons(uint8_t buttons, const String &btnLabel)
 {
   if(buttons==BUTTON_1)
   {
@@ -1733,7 +1787,7 @@ void WebSettings::handleGetValues(WebServer *server)
     //BSC_LOGI(TAG,"handleGetValues: name=%s, arg=%s",server->argName(i).c_str(), server->arg(i).c_str());
     if(isNumber(server->argName(i))) //Wenn keine Zahl, dann Fehler
     {
-      argName = server->argName(i).toInt();
+      argName = static_cast<uint32_t>(server->argName(i).toInt());
 
       uint8_t u8_storeInFlash = ((argName>>16)&0xff);
       uint8_t u8_dataType = ((argName>>24)&0xff);
