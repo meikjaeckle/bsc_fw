@@ -7,7 +7,7 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "log.h"
-#include "WebSettings.h"
+#include <web/WebSettingsMgr.h>
 
 static const char *TAG = "JBD_BMS";
 
@@ -69,7 +69,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
   if(devData->bo_writeData)
   {
     //response als buffer nehmen um zusätzlichen Speicher zu sparen
-    buildMessage(response,true,JBDBMS_REG_CELLVOLTAGE_100,WebSettings::getIntFlash(ID_PARAM_JBD_CELL_VOLTAGE_100,u8_mDevNr+BMSDATA_FIRST_DEV_SERIAL,DT_ID_PARAM_JBD_CELL_VOLTAGE_100));
+    buildMessage(response,true,JBDBMS_REG_CELLVOLTAGE_100,WEBSETTINGS.getIntFlash(ID_PARAM_JBD_CELL_VOLTAGE_100,u8_mDevNr+BMSDATA_FIRST_DEV_SERIAL,DT_ID_PARAM_JBD_CELL_VOLTAGE_100));
     sendMessage(response,9);
   }
 

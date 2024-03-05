@@ -2,8 +2,8 @@
 #include "restapi.h"
 #include "BmsData.h"
 #include "Ow.h"
-#include "Json.h"
-#include "WebSettings.h"
+#include <json/Utils.h>
+#include <web/WebSettingsMgr.h>
 #include "dio.h"
 #include "Canbus.h"
 
@@ -103,7 +103,7 @@ void buildJsonRest(WebServer * server)
     String str_htmlOut="";
     uint8_t u8_val=0;
 
-    uint8_t u8_nrOfCells=WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
+    uint8_t u8_nrOfCells=WEBSETTINGS.getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
 
     server->setContentLength(CONTENT_LENGTH_UNKNOWN);
     server->send(200, "application/json", "");
@@ -118,7 +118,7 @@ void buildJsonRest(WebServer * server)
     genJsonEntryArray(entrySingle, F("fw_version"), BSC_SW_VERSION, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("fw_add"), BSC_SW_SPEZIAL, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("hw_version"), getHwVersion(), str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("name"), WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0), str_htmlOut, true);
+    genJsonEntryArray(entrySingle, F("name"), WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
@@ -164,7 +164,7 @@ void buildJsonRest(WebServer * server)
     genJsonEntryArray(arrStart, F("bms_bt"), "", str_htmlOut, false);
     for(uint8_t bmsDevNr=0;bmsDevNr<BT_DEVICES_COUNT;bmsDevNr++)
     {
-      if(WebSettings::getInt(ID_PARAM_SS_BTDEV,bmsDevNr,DT_ID_PARAM_SS_BTDEV)!=0)
+      if(WEBSETTINGS.getInt(ID_PARAM_SS_BTDEV,bmsDevNr,DT_ID_PARAM_SS_BTDEV)!=0)
         genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
       else genJsonEntryArray(entrySingle, F("en"), 0, str_htmlOut, false);
 
@@ -215,13 +215,13 @@ void buildJsonRest(WebServer * server)
 
     // BMS serial
     uint8_t u8_device, u8_deviceSerial2, u8_deviceSerial2NrOfBms;
-    u8_deviceSerial2=WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-    u8_deviceSerial2NrOfBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
+    u8_deviceSerial2=WEBSETTINGS.getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
+    u8_deviceSerial2NrOfBms=WEBSETTINGS.getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
 
     genJsonEntryArray(arrStart, F("bms_serial"), "", str_htmlOut, false);
     for(uint8_t bmsDevNr=BT_DEVICES_COUNT;bmsDevNr<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT;bmsDevNr++)
     {
-      u8_device = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,bmsDevNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
+      u8_device = WEBSETTINGS.getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,bmsDevNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
       //BSC_LOGI(TAG,"Restapi: u8_device=%i, u8_deviceSerial2=%i, bmsDevNr=%i, u8_deviceSerial2NrOfBms=%i",u8_device, u8_deviceSerial2, bmsDevNr, u8_deviceSerial2NrOfBms);
       if(u8_device!=0) genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
       else if(isMultiple485bms(u8_deviceSerial2) && bmsDevNr>BT_DEVICES_COUNT+2 && bmsDevNr<BT_DEVICES_COUNT+2+u8_deviceSerial2NrOfBms)
@@ -301,7 +301,6 @@ uint8_t u8_activeBms=0;
 #endif
 bool handleRestArgs(WebServer * server)
 {
-  WebSettings ws;
   bool ret=true;
   String argName, argValue;
 
@@ -312,9 +311,9 @@ bool handleRestArgs(WebServer * server)
 
     BSC_LOGI(TAG,"%s=%s",argName.c_str(), argValue.c_str());
 
-    if(argName==F("save")) ws.writeConfig();
-    else if(argName==F("setInvMaxChgCur")) ws.setParameter(ID_PARAM_BMS_MAX_CHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_CHARGE_CURRENT);
-    else if(argName==F("setInvMaxDisChgCur")) ws.setParameter(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
+    if(argName==F("save")) WEBSETTINGS.sync();
+    else if(argName==F("setInvMaxChgCur")) WEBSETTINGS.setParameter(ID_PARAM_BMS_MAX_CHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_CHARGE_CURRENT);
+    else if(argName==F("setInvMaxDisChgCur")) WEBSETTINGS.setParameter(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
 
 
     #ifdef UTEST_RESTAPI

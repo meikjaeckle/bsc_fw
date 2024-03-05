@@ -3,16 +3,18 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "i2c.h"
-#include "Wire.h"
+#include <Wire.h>
+
 #include "defines.h"
-#include "log.h"
-#include "WebSettings.h"
-#include "Canbus.h"
 #include "AlarmRules.h"
 #include "BmsData.h"
-#include "mcp23017.h"
+#include "Canbus.h"
 #include "dio.h"
+#include "log.h"
+#include "mcp23017.h"
+#include <web/WebSettingsMgr.h>
+
+#include "i2c.h"
 
 static const char *TAG = "I2C";
 
@@ -87,7 +89,7 @@ void i2cInit()
   p_lBmsData = getBmsData();
   p_lInverterData = getInverterData();
 
-  //u8_mMasterSlaveId = WebSettings::getInt(ID_PARAM_MASTER_SLAVE_TYP,0,0,0,DT_ID_PARAM_MASTER_SLAVE_TYP);
+  //u8_mMasterSlaveId = WEBSETTINGS.getInt(ID_PARAM_MASTER_SLAVE_TYP,0,0,0,DT_ID_PARAM_MASTER_SLAVE_TYP);
 
   //if(u8_mMasterSlaveId==ID_I2C_MASTER) //Master
   //{
@@ -449,7 +451,7 @@ void displaySendData_bms()
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_RELAIS, 0, &ioData, 1);
 
   //Display Timeout
-  uint8_t dispTimeout = WebSettings::getInt(ID_PARAM_DISPLAY_TIMEOUT,0,DT_ID_PARAM_DISPLAY_TIMEOUT);
+  uint8_t dispTimeout = WEBSETTINGS.getInt(ID_PARAM_DISPLAY_TIMEOUT,0,DT_ID_PARAM_DISPLAY_TIMEOUT);
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_DISPLAY_TIMEOUT, 0, &dispTimeout, 1);
 }
 

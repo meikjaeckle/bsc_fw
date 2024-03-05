@@ -6,10 +6,10 @@
 #ifndef INC_CRC_H_
 #define INC_CRC_H_
 
-#include <stdint.h>
+#include <cstdint>
 
-uint16_t crc16 (uint8_t *nData, uint16_t wLength);
-uint32_t calcCrc32(uint8_t* pData, uint32_t DataLength);
-uint32_t calcCrc32(uint32_t crcIn, uint8_t* pData, uint32_t DataLength);
+uint16_t crc16 (const uint8_t* nData, uint16_t wLength);
+uint32_t calcCrc32(const uint8_t* pData, std::size_t dataLength);
+uint32_t calcCrc32(uint32_t crcIn, const uint8_t* pData, std::size_t dataLength);
 
 #endif

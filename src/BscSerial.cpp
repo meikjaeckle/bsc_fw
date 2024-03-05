@@ -6,7 +6,7 @@
 
 #include "BscSerial.h"
 #include "defines.h"
-#include "WebSettings.h"
+#include <web/WebSettingsMgr.h>
 #include "BmsData.h"
 #include "log.h"
 #include "dio.h"
@@ -73,7 +73,7 @@ void BscSerial::initSerial()
     #endif
 
     //setSerialBaudrate(i);
-    uint8_t funktionsTyp = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
+    uint8_t funktionsTyp = WEBSETTINGS.getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
     BSC_LOGI(TAG, "initSerial SerialNr=%i, funktionsTyp=%i",i,funktionsTyp);
     setReadBmsFunktion(i, funktionsTyp);
   }
@@ -163,7 +163,7 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr)
 
 void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 {
-  serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
+  serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = WEBSETTINGS.getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
 
   //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
 
@@ -307,11 +307,11 @@ void BscSerial::cyclicRun()
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   bool bo_lMqttSendMsg=false;
   uint8_t u8_lNumberOfSeplosBms = 0;
-  uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
+  uint8_t u8_lBmsOnSerial2 = (uint8_t)WEBSETTINGS.getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
   if(isMultiple485bms(u8_lBmsOnSerial2))
   {
     if(isSerialExtEnabled()) u8_lNumberOfSeplosBms=0;
-    else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
+    else u8_lNumberOfSeplosBms=WEBSETTINGS.getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
   }
 
   if((millis()-serialMqttSendeTimer)>60000)
@@ -440,7 +440,7 @@ void BscSerial::cyclicRun()
      * Es wird über alle Cellspannungen eine CRC16 gebildet. Die CRC muss sich in gewissen Abständen ändern,
      * da nie alle Zellspannungen konstant sind. Es wird immer eine der Zellen um +/- ein mV schwanken.
     */
-    uint8_t u8_lTriggerPlausibilityCeckCellVoltage = WebSettings::getInt(ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE,0,DT_ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE);
+    uint8_t u8_lTriggerPlausibilityCeckCellVoltage = WEBSETTINGS.getInt(ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE,0,DT_ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE);
     if(u8_lTriggerPlausibilityCeckCellVoltage>0)
     {
       bmsDataSemaphoreTake();

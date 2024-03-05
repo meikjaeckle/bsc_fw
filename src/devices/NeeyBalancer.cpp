@@ -6,7 +6,8 @@
 
 #include "devices/NeeyBalancer.h"
 #include "BmsData.h"
-#include "WebSettings.h"
+#include <web/Utils.h>
+#include <web/WebSettingsMgr.h>
 
 static const char* TAG = "NEEY";
 
@@ -15,10 +16,6 @@ byte NeeyBalancer_cmdBalanceOff[20] PROGMEM = {0xaa, 0x55, 0x11, 0x00, 0x05, 0x0
 
 
 static uint8_t u8_neeySendStep=0;
-
-NeeyBalancer::NeeyBalancer()
-{
-};
 
 void NeeyBalancer::init()
 {
@@ -280,7 +277,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 2:
-      u8_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,btDevNr,DT_ID_PARAM_NEEY_BALANCER_ON);
+      u8_lValue=WEBSETTINGS.getIntFlash(ID_PARAM_NEEY_BALANCER_ON,btDevNr,DT_ID_PARAM_NEEY_BALANCER_ON);
       if(u8_lValue==0) neeySetBalancerOnOff(pChr, false);
       else if(u8_lValue==110) neeySetBalancerOnOff(pChr, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -289,7 +286,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 3:
-      u8_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_TYPE,btDevNr,DT_ID_PARAM_NEEY_BAT_TYPE);
+      u8_lValue=WEBSETTINGS.getIntFlash(ID_PARAM_NEEY_BAT_TYPE,btDevNr,DT_ID_PARAM_NEEY_BAT_TYPE);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_TYPE, (uint32_t)u8_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -298,7 +295,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 4:
-      u8_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_CELLS,btDevNr,DT_ID_PARAM_NEEY_CELLS);
+      u8_lValue=WEBSETTINGS.getIntFlash(ID_PARAM_NEEY_CELLS,btDevNr,DT_ID_PARAM_NEEY_CELLS);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_CELLS, (uint32_t)u8_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -307,7 +304,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 5:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_START_VOLTAGE,btDevNr);
+      f_lValue=WEBSETTINGS.getFloatFlash(ID_PARAM_NEEY_START_VOLTAGE,btDevNr);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_START_VOL, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -316,7 +313,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 6:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_MAX_BALANCE_CURRENT,btDevNr);
+      f_lValue=WEBSETTINGS.getFloatFlash(ID_PARAM_NEEY_MAX_BALANCE_CURRENT,btDevNr);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -325,7 +322,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 7:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE,btDevNr);
+      f_lValue=WEBSETTINGS.getFloatFlash(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE,btDevNr);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -334,7 +331,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 8:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_SLEEP_VOLTAGE,btDevNr);
+      f_lValue=WEBSETTINGS.getFloatFlash(ID_PARAM_NEEY_SLEEP_VOLTAGE,btDevNr);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -343,7 +340,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 9:
-      u16_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_CAPACITY,btDevNr,DT_ID_PARAM_NEEY_BAT_CAPACITY);
+      u16_lValue=WEBSETTINGS.getIntFlash(ID_PARAM_NEEY_BAT_CAPACITY,btDevNr,DT_ID_PARAM_NEEY_BAT_CAPACITY);
       neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_CAP, (uint32_t)u16_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -476,26 +473,26 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
-    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)==ID_BT_DEVICE_NEEY4A)
+    if(WEBSETTINGS.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)==ID_BT_DEVICE_NEEY4A)
     {
       value += "|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_START_VOLTAGE, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_START_VOLTAGE, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_START_VOL),3) + " V|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_MAX_BALANCE_CURRENT, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_MAX_BALANCE_CURRENT, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT),3) + " A|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_SLEEP_VOLTAGE, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_SLEEP_VOLTAGE, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE),3) + " V|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE),3) + " V|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_CELLS, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_CELLS, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_CELLS)) + "|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BAT_TYPE, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_BAT_TYPE, i)) + ";";
       u8_lValue = NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BAT_TYPE);
       str_lText="";
       if(u8_lValue==1) str_lText=F("NCM");
@@ -505,10 +502,10 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
       else String(u8_lValue);
       value += str_lText + "|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BAT_CAPACITY, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_BAT_CAPACITY, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BAT_CAP)) + " Ah|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BALANCER_ON, i)) + ";";
+      value += "s" + String(web::getParmId(ID_PARAM_NEEY_BALANCER_ON, i)) + ";";
       u8_lValue = NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BALLANCER_ON_OFF);
       str_lText="";
       if(u8_lValue==0) str_lText=F("AUS");

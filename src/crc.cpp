@@ -62,7 +62,7 @@ static const uint32_t crc32Table[0x100] = {
 };
 
 
-uint16_t crc16 (uint8_t *nData, uint16_t wLength) {
+uint16_t crc16 (const uint8_t* nData, uint16_t wLength) {
 
 	uint8_t nTemp;
 	uint16_t wCRCWord = 0xFFFF;
@@ -78,23 +78,16 @@ uint16_t crc16 (uint8_t *nData, uint16_t wLength) {
 }
 
 
-uint32_t calcCrc32(uint8_t* pData, uint32_t DataLength)
+uint32_t calcCrc32(const uint8_t* pData, const std::size_t dataLength)
 {
-	uint32_t u32_lChksum = 0xFFFFFFFF;
-	for (unsigned int i = 0; i < DataLength; i++)
-	{
-		uint8_t top = (uint8_t)(u32_lChksum >> 24);
-		top ^= pData[i];
-		u32_lChksum = (u32_lChksum << 8) ^ crc32Table[top];
-	}
-	return u32_lChksum;
+  return calcCrc32(0, pData, dataLength);
 }
 
-uint32_t calcCrc32(uint32_t crcIn, uint8_t* pData, uint32_t DataLength)
+uint32_t calcCrc32(const uint32_t crcIn, const uint8_t* pData, const std::size_t dataLength)
 {
-	uint32_t u32_lChksum = 0xFFFFFFFF;
-	if(crcIn!=0)u32_lChksum=crcIn;
-	for (unsigned int i = 0; i < DataLength; i++)
+  uint32_t u32_lChksum {(crcIn != 0) ? crcIn : 0xFFFFFFFF};
+
+	for (std::size_t i = 0; i < dataLength; ++i)
 	{
 		uint8_t top = (uint8_t)(u32_lChksum >> 24);
 		top ^= pData[i];

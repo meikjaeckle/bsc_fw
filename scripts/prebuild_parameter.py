@@ -9,7 +9,7 @@ for zeile in datei:
             defines_dict.update({defs[1].strip(): defs[2].strip().replace('"', '')})
 datei.close()
 
-datei = open('./include/WebSettings.h','r')
+datei = open('./include/web/WebDefinitions.h','r')
 for zeile in datei:
     defFound = zeile.find("#define ")
     if defFound >= 0:
@@ -38,7 +38,7 @@ for zeile in datei:
 
     #zeile = zeile.replace("'", "\\\"")
     zeile = zeile.replace("\\n", "<br>")
-    
+
     defFoundStart = zeile.find("//PY_VAR_ANF")
     if defFoundStart >= 0:
         pyVar=1
@@ -51,10 +51,10 @@ for zeile in datei:
         defines_dict.update({pyVarVarName:pyVarValue})
         pyVarVarName=""
         pyVarValue=""
-    
+
     if pyVar == 3:
         pyVarValue += zeile.strip().strip("\"").rstrip(";").rstrip("\"")
-            
+
     if pyVar == 2:
         pyVar=3
         pyVarVarName = zeile.strip().split(' ',3)[2].strip()
@@ -65,7 +65,7 @@ for zeile in datei:
                 zeile = "";
             else:
                 zeile = zeile[0:zeile.find("//")] + "\n";
-        
+
         #if(lineCnt>10):
         #    zeile = zeile.replace("\"", "")
         #    zeile = zeile.replace("'", "\"")
@@ -102,7 +102,7 @@ for zeile in datei:
                 if (defFoundPlus+1) == defFoundStart:
                     defFoundStart=-1
                     zeile=zeile.replace("\+","+")
-                    
+
                 if defFoundStart >= 0:
                     varName2 = zeile.split("+")[1]
                     if varName2 in defines_dict:
@@ -110,15 +110,15 @@ for zeile in datei:
                         zeileNeu = zeile.replace("+"+varName2+"+",""+defines_dict.get(varName2)+"");
                 else:
                     zeileNeu=zeile
-                   
-            if(lineCnt>54): 
+
+            if(lineCnt>54):
                 zeileNeu = zeileNeu.replace("\n","");
 
         if(len(zeileNeu)>1):
             zeileNeu = zeileNeu.replace("$$Q$$", "'")
             zeileNeu = zeileNeu.lstrip();
             dateiOut.write(zeileNeu)
- 
+
     if pyVar == 1:
         pyVar=2
 
@@ -155,10 +155,10 @@ for zeile in datei:
         #print(pyVarVarName)
         pyVarVarName=""
         pyVarValue=""
-    
+
     if pyVar == 3:
         pyVarValue += zeile.strip().strip("\"").rstrip(";").rstrip("\"")
-            
+
     if pyVar == 2:
         pyVar=3
         pyVarVarName = zeile.strip().split(' ',3)[0].strip()
@@ -168,7 +168,7 @@ for zeile in datei:
             zeile = zeile.replace("__"+key+"__", value)
 
         dateiOut.write(zeile)
- 
+
     if pyVar == 1:
         pyVar=2
 
@@ -188,7 +188,7 @@ datei = open('./include/params_py.h','r')
 dateiOut.write("#include \"defines.h\"\n\n")
 #dateiOut.write("uint8_t paramIdDataTypes[256];\n\n")
 
-               
+
 # "'name':"+String(ID_PARAM_SERIAL_CONNECT_DEVICE)+","
 # "'dt':"+String(PARAM_DT_U8)+""
 

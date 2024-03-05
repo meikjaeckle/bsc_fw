@@ -8,7 +8,7 @@
 #include "Arduino.h"
 #include <NTP.h>
 #include <WiFiUdp.h>
-#include "WebSettings.h"
+#include <web/WebSettingsMgr.h>
 
 static const char *TAG = "TIME";
 
@@ -23,8 +23,8 @@ uint8_t u8_mNtpTiemout=0;
 
 void initTime()
 {
-  String str_lNtpServerName = WebSettings::getStringFlash(ID_PARAM_SYSTEM_NTP_SERVER_NAME,0);
-  //uint16_t u16_lNtpServerPort = WebSettings::getIntFlash(ID_PARAM_SYSTEM_NTP_SERVER_PORT,0,0,0,DT_ID_PARAM_SYSTEM_NTP_SERVER_PORT);
+  String str_lNtpServerName = WEBSETTINGS.getStringFlash(ID_PARAM_SYSTEM_NTP_SERVER_NAME,0);
+  //uint16_t u16_lNtpServerPort = WEBSETTINGS.getIntFlash(ID_PARAM_SYSTEM_NTP_SERVER_PORT,0,0,0,DT_ID_PARAM_SYSTEM_NTP_SERVER_PORT);
 
   if(str_lNtpServerName.length()==0)return;
   bo_lNtpEnable=true;

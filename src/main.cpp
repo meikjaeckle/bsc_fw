@@ -38,6 +38,7 @@
 
 #include "defines.h"
 #include "WebSettings.h"
+#include <web/WebSettingsMgr.h>
 #include "BleHandler.h"
 #include "params.h"
 #include "webpages.h"
@@ -364,22 +365,22 @@ boolean connectWiFi()
 
   bo_mWifiConnected=false;
   bo_lWlanNeverAp=false;
-  str_lWlanSsid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0);
-  str_lWlanPwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0);
-  u16_lWlanConnTimeout  = webSettingsSystem.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,DT_ID_PARAM_WLAN_CONNECT_TIMEOUT);
+  str_lWlanSsid = WEBSETTINGS.getString(ID_PARAM_WLAN_SSID,0);
+  str_lWlanPwd  = WEBSETTINGS.getString(ID_PARAM_WLAN_PWD,0);
+  u16_lWlanConnTimeout  = WEBSETTINGS.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,DT_ID_PARAM_WLAN_CONNECT_TIMEOUT);
 
   // Wenn eine statische IP festgelegt wurde
   IPAddress lWlanIpAdresse;
-  if(lWlanIpAdresse.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_IP_ADRESSE,0)))
+  if(lWlanIpAdresse.fromString(WEBSETTINGS.getStringFlash(ID_PARAM_WLAN_IP_ADRESSE,0)))
   {
     IPAddress lWlanGateway;
     IPAddress lWlanSubnet;
     IPAddress lWlanDns;
-    if(lWlanGateway.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_GATEWAY,0)))
+    if(lWlanGateway.fromString(WEBSETTINGS.getStringFlash(ID_PARAM_WLAN_GATEWAY,0)))
     {
-      if(lWlanSubnet.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_SUBNET,0)))
+      if(lWlanSubnet.fromString(WEBSETTINGS.getStringFlash(ID_PARAM_WLAN_SUBNET,0)))
       {
-        if(lWlanDns.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_DNS,0)))
+        if(lWlanDns.fromString(WEBSETTINGS.getStringFlash(ID_PARAM_WLAN_DNS,0)))
           WiFi.config(lWlanIpAdresse,lWlanGateway,lWlanSubnet,lWlanDns);
         else WiFi.config(lWlanIpAdresse,lWlanGateway,lWlanSubnet);
         BSC_LOGI(TAG, "Static IP: %s, Gateway: %s, Subnet: %s",lWlanIpAdresse.toString().c_str(),lWlanGateway.toString().c_str(),lWlanSubnet.toString().c_str());
@@ -401,7 +402,7 @@ boolean connectWiFi()
   {
     BSC_LOGI(TAG, "Verbindung zu %s",str_lWlanSsid.c_str());
     WiFi.scanDelete();
-    WiFi.setHostname(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str());
+    WiFi.setHostname(WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str());
     WiFi.mode(WIFI_STA);
     WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
     WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
@@ -450,7 +451,7 @@ boolean connectWiFi()
     BSC_LOGI(TAG, "Open Wifi AP");
     WlanStaApOk=WIFI_AP;
     WiFi.mode(WIFI_AP);
-    String str_lHostname = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+    String str_lHostname = WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0);
     str_lHostname += "_" + String((uint32_t)ESP.getEfuseMac());
     WiFi.softAP(str_lHostname.c_str(),"",1);
     changeWlanDataForI2C=true;
@@ -572,7 +573,7 @@ void task_ConnectWiFi(void *param)
           break;
         }
 
-        if(webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
+        if(WEBSETTINGS.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
         {
           if(mqttConnect()) mConnectStateEnums=ConnState_connectBT;
         }
@@ -919,12 +920,12 @@ void handle_paramSerial()
   {
     for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
     {
-      bscSerial.setReadBmsFunktion(i, WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE));
+      bscSerial.setReadBmsFunktion(i, WEBSETTINGS.getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE));
     }
     changeAlarmSettings();
 
     bmsFilterData_s* bmsFilterData = getBmsFilterData();
-    bmsFilterData->u8_mFilterBmsCellVoltagePercent = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,DT_ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT);
+    bmsFilterData->u8_mFilterBmsCellVoltagePercent = WEBSETTINGS.getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,DT_ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT);
   }
 }
 
@@ -1035,7 +1036,7 @@ void handle_getDashboardData()
 
   //12. Hostname
   tmp += "|";
-  tmp += WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+  tmp += WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0);
 
   server.send(200, "text/html", tmp.c_str());
 }
@@ -1094,7 +1095,7 @@ void btnSystemDeleteLog()
   {
     SPIFFS.format();
     delay(100);
-    webSettingsSystem.writeConfig();
+    WEBSETTINGS.sync();
   }
   BSC_LOGI(TAG, "Logfiles deleted");
 }
@@ -1200,6 +1201,17 @@ void setup()
   if(bootCounter!=0xFF) bootCounter++;
   isBoot = true;
 
+  // TODO MEJ init file system here, move from debugInit() and WebSettings::initWebSettings()
+  //------------------------
+  // From WebSettings
+  if (!SPIFFS.begin())
+  {
+    BSC_LOGE(TAG,"Mount Failed");
+    SPIFFS.format();
+    SPIFFS.begin();
+  }
+  //------------------------
+
   //Serielle Debugausgabe
   debugInit();
 
@@ -1216,21 +1228,23 @@ void setup()
 
   //init WebSettings
   free_dump();
-  webSettingsSystem.initWebSettings(paramSystem, "System", "/WebSettings.conf");
-  webSettingsBluetooth.initWebSettings(paramBluetooth, "Bluetooth", "/WebSettings.conf");
+  const String webSettingsConfFile {"/WebSettings.conf"};
+  WEBSETTINGS.init(SPIFFS, webSettingsConfFile);
+  webSettingsSystem.init(WEBSETTINGS, paramSystem, "System");
+  webSettingsBluetooth.init(WEBSETTINGS, paramBluetooth, "Bluetooth");
   webSettingsBluetooth.setTimerHandlerName("getBtDevices");
-  webSettingsSerial.initWebSettings(paramSerial, "Serial", "/WebSettings.conf");
-  webSettingsAlarmBt.initWebSettings(paramAlarmBms, "Alarm BMS (BT + Serial)", "/WebSettings.conf");
-  webSettingsAlarmTemp.initWebSettings(paramAlarmTemp, "Alarm Temperatur", "/WebSettings.conf");
-  webSettingsDitialOut.initWebSettings(paramDigitalOut, "Digitalausg&auml;nge", "/WebSettings.conf");
-  webSettingsDitialIn.initWebSettings(paramDigitalIn, "Digitaleing&auml;nge", "/WebSettings.conf");
-  webSettingsOnewire.initWebSettings(paramOnewireAdr, "Onewire", "/WebSettings.conf");
+  webSettingsSerial.init(WEBSETTINGS, paramSerial, "Serial");
+  webSettingsAlarmBt.init(WEBSETTINGS, paramAlarmBms, "Alarm BMS (BT + Serial)");
+  webSettingsAlarmTemp.init(WEBSETTINGS, paramAlarmTemp, "Alarm Temperatur");
+  webSettingsDitialOut.init(WEBSETTINGS, paramDigitalOut, "Digitalausg&auml;nge");
+  webSettingsDitialIn.init(WEBSETTINGS, paramDigitalIn, "Digitaleing&auml;nge");
+  webSettingsOnewire.init(WEBSETTINGS, paramOnewireAdr, "Onewire");
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
-  webSettingsOnewire2.initWebSettings(paramOnewire2, "Onewire II", "/WebSettings.conf");
-  webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf");
-  webSettingsDeviceNeeyBalancer.initWebSettings(paramDeviceNeeyBalancer, "NEEY Balancer", "/WebSettings.conf");
+  webSettingsOnewire2.init(WEBSETTINGS, paramOnewire2, "Onewire II");
+  webSettingsBmsToInverter.init(WEBSETTINGS, paramBmsToInverter, "Wechselrichter & Laderegelung");
+  webSettingsDeviceNeeyBalancer.init(WEBSETTINGS, paramDeviceNeeyBalancer, "NEEY Balancer");
   webSettingsDeviceNeeyBalancer.setTimerHandlerName("getNeeySettingsReadback",2000);
-  webSettingsDeviceJbdBms.initWebSettings(paramDeviceJbdBms, "JBD BMS", "/WebSettings.conf");
+  webSettingsDeviceJbdBms.init(WEBSETTINGS, paramDeviceJbdBms, "JBD BMS");
 
   //Buttons
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
@@ -1245,7 +1259,7 @@ void setup()
   webSettingsDeviceJbdBms.registerOnButton1(&btnWriteJbdBmsData);
   free_dump();
 
-  BSC_LOGI(TAG,"Hostname: %s", WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()); //Der Hostname kann erst nach dem lesen der Parameter genutzt werden
+  BSC_LOGI(TAG,"Hostname: %s", WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()); //Der Hostname kann erst nach dem lesen der Parameter genutzt werden
 
   //mqtt
   initMqtt();
@@ -1258,7 +1272,7 @@ void setup()
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wifiConn, 1);
 
 
-  if (MDNS.begin(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()))
+  if (MDNS.begin(WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()))
   {
     BSC_LOGI(TAG, "MDNS responder gestartet");
   }

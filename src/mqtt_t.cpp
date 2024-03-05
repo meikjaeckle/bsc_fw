@@ -9,7 +9,7 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include "WebSettings.h"
+#include <web/WebSettingsMgr.h>
 #include "defines.h"
 #include "BmsData.h"
 #include "Ow.h"
@@ -73,14 +73,14 @@ void initMqtt()
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
   u8_mWaitConnectCounter=0;
 
-  bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0);
+  bo_mMqttEnable = WEBSETTINGS.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0);
   if(!bo_mMqttEnable) return;
 
-  if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals(""))
+  if(!WEBSETTINGS.getString(ID_PARAM_MQTT_SERVER_IP,0).equals(""))
   {
-    mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
-    mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
-    BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
+    mqttIpAdr.fromString(WEBSETTINGS.getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
+    mqttClient.setServer(mqttIpAdr, (uint16_t)WEBSETTINGS.getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
+    BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WEBSETTINGS.getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     mqttClient.setCallback(mqttCallback);
     mqttClient.setKeepAlive(30);
   }
@@ -208,8 +208,8 @@ bool mqttConnect()
   if(WiFi.status() != WL_CONNECTED) bo_lBreak+=1;
   if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) bo_lBreak+=2;
 
-  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals("")) bo_lBreak+=4;
-  if(WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT)<=0) bo_lBreak+=8;
+  if(WEBSETTINGS.getString(ID_PARAM_MQTT_SERVER_IP,0).equals("")) bo_lBreak+=4;
+  if(WEBSETTINGS.getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT)<=0) bo_lBreak+=8;
 
   if(bo_lBreak!=0)
   {
@@ -219,10 +219,10 @@ bool mqttConnect()
     return false;
   }
 
-  str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
-  str_mMqttTopicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
-  String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0);
-  String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0);
+  str_mMqttDeviceName = WEBSETTINGS.getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+  str_mMqttTopicName = WEBSETTINGS.getString(ID_PARAM_MQTT_TOPIC_NAME,0);
+  String mqttUser = WEBSETTINGS.getString(ID_PARAM_MQTT_USERNAME,0);
+  String mqttPwd = WEBSETTINGS.getString(ID_PARAM_MQTT_PWD,0);
 
   if(!mqttClient.connected())
   {
@@ -258,7 +258,7 @@ bool mqttConnect()
     ret=true;
 
     // Subscribe
-    String str_lSubTopic = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
+    String str_lSubTopic = WEBSETTINGS.getString(ID_PARAM_MQTT_TOPIC_NAME,0);
     str_lSubTopic+="/input/#";
     mqttClient.subscribe(str_lSubTopic.c_str());
 
@@ -392,9 +392,9 @@ void mqttDataToTxBuffer()
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
   //Sende Daten via mqtt, wenn aktiv
-  if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
+  if(WEBSETTINGS.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
   {
-    uint32_t u8_lMqttSendDelay = (uint32_t)WebSettings::getInt(ID_PARAM_MQTT_SEND_DELAY,0,DT_ID_PARAM_MQTT_SEND_DELAY)*1000;
+    uint32_t u8_lMqttSendDelay = (uint32_t)WEBSETTINGS.getInt(ID_PARAM_MQTT_SEND_DELAY,0,DT_ID_PARAM_MQTT_SEND_DELAY)*1000;
     if(millis()-sendeTimerBmsMsg>=u8_lMqttSendDelay)
     {
       sendeTimerBmsMsg = millis();
@@ -502,7 +502,7 @@ void mqttPublishOwTemperatur(uint8_t i)
   float f_lOwTemp;
 
   f_lOwTemp=owGetTemp(i);
-  if(WebSettings::getStringFlash(ID_PARAM_ONEWIRE_ADR,i).equals("")==false)
+  if(WEBSETTINGS.getStringFlash(ID_PARAM_ONEWIRE_ADR,i).equals("")==false)
   {
     if(f_lOwTemp!=TEMP_IF_SENSOR_READ_ERROR /*&& f_lOwTemp!=0*/)
     {
@@ -535,7 +535,7 @@ void mqttCallback(char* topic, uint8_t* payload, unsigned int payLen)
 {
   if(payLen==0) return;
 
-  String str_topicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
+  String str_topicName = WEBSETTINGS.getString(ID_PARAM_MQTT_TOPIC_NAME,0);
   String topicStr(topic);
   uint8_t idxCnt = topicStr.indexOf('/');
 

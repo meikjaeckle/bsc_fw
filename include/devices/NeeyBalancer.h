@@ -160,10 +160,9 @@
   // 299   1   0xFF
 
 
-class NeeyBalancer {
+class NeeyBalancer
+{
 public:
-  NeeyBalancer();
-
   void init();
   static void neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length);
   static void neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value);

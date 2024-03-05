@@ -5,7 +5,7 @@
 
 
 #include "BmsData.h"
-#include "WebSettings.h"
+#include <web/WebSettingsMgr.h>
 
 static const char * TAG = "BMSDATA";
 
@@ -329,8 +329,8 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
   {
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
 
-    uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    uint16_t u16_CellvoltSoc0 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc100 = WEBSETTINGS.getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc0 = WEBSETTINGS.getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
 
 
     if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )

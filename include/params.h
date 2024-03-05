@@ -4,6 +4,7 @@
 */
 #include "Arduino.h"
 #include "defines.h"
+#include <web/WebDefinitions.h>
 #include "WebSettings.h"
 /* ***********************************************************************************
 * Wichtiger Hinweis!

@@ -10,7 +10,7 @@
 
 #define BSC_SW_VERSION      "V0.5.13"
 
-static const char COMPILE_DATE_TIME[] = "";
+static const char COMPILE_DATE_TIME[] = __DATE__ " " __TIME__;
 
 //#define USE_LittleFS
 #define HTML_MINIFY

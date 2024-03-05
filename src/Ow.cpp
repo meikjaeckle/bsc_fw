@@ -3,12 +3,13 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "Ow.h"
-#include "WebSettings.h"
-#include "defines.h"
-#include <OneWire.h>
 #include <DallasTemperature.h>
+#include <OneWire.h>
+
+#include "defines.h"
 #include "log.h"
+#include "Ow.h"
+#include <web/WebSettingsMgr.h>
 
 static const char *TAG = "OW";
 
@@ -42,7 +43,7 @@ uint8_t getSensorAdrFromParams()
   uint8_t owAmount = 0;
   for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
   {
-    owAdr = WebSettings::getStringFlash(ID_PARAM_ONEWIRE_ADR,i);
+    owAdr = WEBSETTINGS.getStringFlash(ID_PARAM_ONEWIRE_ADR,i);
 
     if (8 == sscanf(owAdr.c_str(), "%x:%x:%x:%x:%x:%x:%x:%x%*c",
         &owAddr[i][0], &owAddr[i][1], &owAddr[i][2], &owAddr[i][3],
@@ -123,7 +124,7 @@ uint8_t getErrorCounter()
 void owCyclicRun()
 {
   //Wenn onewire aktiviert wurde
-  if(WebSettings::getBool(ID_PARAM_ONWIRE_ENABLE,0))
+  if(WEBSETTINGS.getBool(ID_PARAM_ONWIRE_ENABLE,0))
   {
     xSemaphoreTake(owMutex, portMAX_DELAY);
     if(cycleCounter==0)
@@ -183,7 +184,7 @@ void getTempC_allDevices(bool tempToOutBuffer)
         else
         {
           //Offset abziehen
-          tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,i)*100);
+          tempC += (int16_t)(WEBSETTINGS.getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,i)*100);
 
           if(firstMeasurement) owTempsC_AvgCalc[i] = tempC;
           else owTempsC_AvgCalc[i] = (owTempsC_AvgCalc[i]+tempC)/2;
