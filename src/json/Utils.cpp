@@ -3,27 +3,16 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "Json.h"
+#include <json/Utils.h>
+#include <cstring>
 
-Json::Json()
+namespace json
 {
-};
 
-
-int arrSize(const char *a)
+namespace // anonymous
 {
-    int it = 0;
-    int size = 0;
-    while(a[it] != '\0')
-    {
-        ++size;
-        ++it;
-    }
-    return size;
-}
 
-
-bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& endPos)
+bool jsonIndexPos_Array(const char *json, int idx, long &startPos, long& endPos)
 {
     int32_t  posArrayFirstOpen = -1;
     uint32_t posElementOpen = 0;
@@ -33,7 +22,7 @@ bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& e
 
     uint8_t arrayNr = 0;
 
-    for (uint32_t i = startPos; i < arrSize(json); i++)
+    for (uint32_t i = startPos; i < std::strlen(json); ++i)
     {
         char c = json[i];
         if (c == '{')
@@ -69,8 +58,9 @@ bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& e
     return true;
 }
 
+} // anonymous
 
-uint16_t Json::getArraySize(const char *json, long startPos)
+uint16_t getArraySize(const char *json, long startPos)
 {
     uint8_t  arrayOpenCnt = 0;
     uint8_t  arrayCloseCnt = 0;
@@ -80,9 +70,9 @@ uint16_t Json::getArraySize(const char *json, long startPos)
     uint16_t arrayCnt = 0;
     uint8_t  arrayCntMerker = 1;
 
-    for (uint32_t i = startPos; i < arrSize(json); i++)
+    for (uint32_t i = startPos; i < std::strlen(json); ++i)
     {
-        char c = json[i];
+        const char c = json[i];
         if (c == '[')
         {
             arrayOpenCnt++;
@@ -116,35 +106,35 @@ uint16_t Json::getArraySize(const char *json, long startPos)
     return arrayCnt;
 }
 
-bool Json::getValue(const char * json, int idx, String name, uint32_t searchStartPos, String& retValue, uint32_t& arrayStart)
+bool getValue(const char * json, int idx, const String &name, uint32_t searchStartPos, String& retValue, uint32_t& arrayStart)
 {
     arrayStart = 0;
-    retValue = "";
-    long startPos = searchStartPos;
-    long endPos = 0;
+    retValue.clear();
+    long startPos = searchStartPos; // TODO MEJ Why long? I would suggest to use std::size_t, same for searchStartPos
+    long endPos = 0; // TODO MEJ why long? I would suggest to use std::size_t
+
     jsonIndexPos_Array(json, idx, startPos, endPos);
 
-    String label = "";
-    String sName = "\"";
+    String label;
+    String sName {"\""};
     sName += name;
     sName += "\":";
     const char* cName = sName.c_str();
-    uint8_t cNameLen = strlen(cName);
-    uint8_t cNameFoundToPos = 0;
-    uint8_t searchState = 0;
-    uint8_t tmpStringAnfang = 0;
+    uint8_t cNameLen = std::strlen(cName);
+    uint8_t cNameFoundToPos {0};
+    uint8_t searchState {0};
+    uint8_t tmpStringAnfang {0};
 
-    for (uint32_t p = startPos; p < endPos+1; p++)
+    for (uint32_t p = startPos; p < endPos+1; ++p)
     {
         if (searchState == 0)
         {
-
             if (json[p] == cName[cNameFoundToPos]) //Ersten Zeichen gefunden
             {
-                cNameFoundToPos++;
+                ++cNameFoundToPos;
                 if (cNameLen == cNameFoundToPos)
                 {
-                    searchState++;
+                    ++searchState;
                 }
             }
             else
@@ -165,7 +155,7 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
                 {
                     if (json[p] != '"')
                     {
-                        p--;
+                        --p;
                     }
                 }
                 searchState = 3;
@@ -193,3 +183,4 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
     return false; //Nichts gefunden
 }
 
+} // namespace json
