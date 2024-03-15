@@ -10,8 +10,8 @@
 #include <vector>
 
 #include <FS.h>
-#include <WString.h>
 #include <sparsepp/spp.h>
+#include <WString.h>
 
 #include <crc.h>
 #include <defines.h>
@@ -67,7 +67,7 @@ uint32_t calcCrc(fs::FS &fs, const String &fileSrc)
   File fSrc = fs.open(fileSrc, "r");
   while (fSrc.available() > 0)
   {
-    const uint8_t readBytes = fSrc.readBytes(buf.data(), 64);
+    const uint8_t readBytes = fSrc.readBytes(buf.data(), buf.size());
     crc = calcCrc32(crc, reinterpret_cast<uint8_t*>(buf.data()), readBytes);
   }
   return crc;
