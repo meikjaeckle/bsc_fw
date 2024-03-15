@@ -12,7 +12,7 @@
 #include "log.h"
 #include <json/Utils.h>
 #include <web/Utils.h>
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 #include "web/webSettings_web.h"
 #include "WebSettings.h"
 
@@ -128,7 +128,7 @@ WebSettings::WebSettings()
 };
 
 
-void WebSettings::init(web::WebSettingsMgr &mgr, const char *parameter, const String &confName)
+void WebSettings::init(web::WebSettingsStorage &mgr, const char *parameter, const String &confName)
 {
   mMgr = &mgr;
   mConfName = confName;
@@ -211,10 +211,6 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 {
   assert(server); // TODO MEJ pass server by reference
   assert(mMgr);
-
-  TaskHandle_t taskHandle = xTaskGetCurrentTaskHandle();
-  const char* const taskName = pcTaskGetName(taskHandle);
-  BSC_LOGE(TAG,"handleHtmlFormRequest calling task: %s", taskName);
 
   if(json::getArraySize(mParameterFile, 8) == 0)
   {

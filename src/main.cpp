@@ -38,7 +38,7 @@
 
 #include "defines.h"
 #include "WebSettings.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 #include "BleHandler.h"
 #include "params.h"
 #include "webpages.h"

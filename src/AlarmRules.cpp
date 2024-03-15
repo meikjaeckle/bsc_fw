@@ -12,7 +12,7 @@
 #include "mqtt_t.h"
 #include "FreqCountESP.h"
 #include "log.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 static const char *TAG = "ALARM";
 

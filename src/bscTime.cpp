@@ -8,7 +8,7 @@
 #include "Arduino.h"
 #include <NTP.h>
 #include <WiFiUdp.h>
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 static const char *TAG = "TIME";
 

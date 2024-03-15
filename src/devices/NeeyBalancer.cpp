@@ -7,7 +7,7 @@
 #include "devices/NeeyBalancer.h"
 #include "BmsData.h"
 #include <web/Utils.h>
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 static const char* TAG = "NEEY";
 

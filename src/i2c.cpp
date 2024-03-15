@@ -12,7 +12,7 @@
 #include "dio.h"
 #include "log.h"
 #include "mcp23017.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 #include "i2c.h"
 

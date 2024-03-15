@@ -22,11 +22,11 @@ namespace fs
 namespace web
 {
 
-class WebSettingsMgr
+class WebSettingsStorage
 {
 public:
-  WebSettingsMgr();
-  ~WebSettingsMgr();
+  WebSettingsStorage();
+  ~WebSettingsStorage();
 
 public:
   bool init(fs::FS &fs, const String &configFilePath);
@@ -103,7 +103,7 @@ private:
 
 
 template<typename T>
-T WebSettingsMgr::readValueFromMap(uint16_t name) const
+T WebSettingsStorage::readValueFromMap(uint16_t name) const
 {
   if constexpr (std::is_same<T, int8_t>::value || std::is_same<T, uint8_t>::value)
     return mSettingValues_i8.contains(name) ? static_cast<T>(mSettingValues_i8.at(name)) : T{};
@@ -122,14 +122,14 @@ T WebSettingsMgr::readValueFromMap(uint16_t name) const
 }
 
 template<typename T>
-T WebSettingsMgr::readValueFromPrefs(uint16_t name) const
+T WebSettingsStorage::readValueFromPrefs(uint16_t name) const
 {
   const String nameStr(name);
   return readValueFromPrefs<T>(nameStr);
 }
 
 template<typename T>
-T WebSettingsMgr::readValueFromPrefs(const String &nameStr) const
+T WebSettingsStorage::readValueFromPrefs(const String &nameStr) const
 {
   Preferences &prefs = const_cast<Preferences&>(mPrefs);
 
@@ -150,7 +150,7 @@ T WebSettingsMgr::readValueFromPrefs(const String &nameStr) const
 }
 
 template<typename T>
-String WebSettingsMgr::readValueAsString(uint16_t name, bool fromPrefs) const
+String WebSettingsStorage::readValueAsString(uint16_t name, bool fromPrefs) const
 {
   const T value = (fromPrefs) ? readValueFromPrefs<T>(name) : readValueFromMap<T>(name);
   if constexpr (std::is_same<T, String>::value)
@@ -160,7 +160,7 @@ String WebSettingsMgr::readValueAsString(uint16_t name, bool fromPrefs) const
 }
 
 template<typename T>
-void WebSettingsMgr::writeValueToPrefs(uint16_t name, const String &valueToWrite)
+void WebSettingsStorage::writeValueToPrefs(uint16_t name, const String &valueToWrite)
 {
   const String nameStr(name);
 
@@ -190,7 +190,7 @@ void WebSettingsMgr::writeValueToPrefs(uint16_t name, const String &valueToWrite
  * The #define "CAN" can be used as an "alias" to access the singleton object of the ESP32TWAI.
  */
 class WebSettingsMgrSingleton :
-  public WebSettingsMgr
+  public WebSettingsStorage
 {
   private:
     // don't allow public construct/destruction

@@ -6,7 +6,7 @@
 
 #include "BscSerial.h"
 #include "defines.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 #include "BmsData.h"
 #include "log.h"
 #include "dio.h"

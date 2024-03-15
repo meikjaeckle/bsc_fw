@@ -5,7 +5,7 @@
 
 
 #include "BmsData.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 static const char * TAG = "BMSDATA";
 

@@ -19,7 +19,7 @@
 #include <json/Utils.h>
 #include <web/Utils.h>
 #include <web/WebDefinitions.h>
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 namespace web
 {
@@ -77,20 +77,20 @@ uint32_t calcCrc(fs::FS &fs, const String &fileSrc)
 
 static const char * TAG = "WEB_SETTINGS_MGR";
 
-/* static */ const String WebSettingsMgr::mBackupFilePath {"/WebSettings.sich"};
+/* static */ const String WebSettingsStorage::mBackupFilePath {"/WebSettings.sich"};
 
-WebSettingsMgr::WebSettingsMgr()
+WebSettingsStorage::WebSettingsStorage()
   : mMutex(xSemaphoreCreateMutex())
 {
-  assert(mMutex && "WebSettingsMgr: Failed to create mutex");
+  assert(mMutex && "WebSettingsStorage: Failed to create mutex");
 }
 
-WebSettingsMgr::~WebSettingsMgr()
+WebSettingsStorage::~WebSettingsStorage()
 {
   vSemaphoreDelete(mMutex);
 }
 
-bool WebSettingsMgr::init(fs::FS &fs, const String &configFilePath)
+bool WebSettingsStorage::init(fs::FS &fs, const String &configFilePath)
 {
   mFileSystem = &fs;
   mConfigFilePath = configFilePath;
@@ -120,13 +120,13 @@ bool WebSettingsMgr::init(fs::FS &fs, const String &configFilePath)
   initSuccessful &= readConfig();
 
   #ifdef WEBSET_DEBUG
-  BSC_LOGI(TAG, "WebSettingsMgr::init() end");
+  BSC_LOGI(TAG, "WebSettingsStorage::init() end");
   #endif
 
   return initSuccessful;
 }
 
-bool WebSettingsMgr::addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName)
+bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName)
 {
   assert(parameter);
 
@@ -140,7 +140,7 @@ bool WebSettingsMgr::addDefaultValuesFromNewKeys(const char *parameter, uint32_t
   return hasNewKeys;
 }
 
-bool WebSettingsMgr::isKeyExist(uint16_t key, uint8_t u8_dataType) const
+bool WebSettingsStorage::isKeyExist(uint16_t key, uint8_t u8_dataType) const
 {
   bool ret = false;
   xSemaphoreTake(mMutex, portMAX_DELAY);
@@ -178,7 +178,7 @@ bool WebSettingsMgr::isKeyExist(uint16_t key, uint8_t u8_dataType) const
   return ret;
 }
 
-bool WebSettingsMgr::sync()
+bool WebSettingsStorage::sync()
 {
   xSemaphoreTake(mMutex, portMAX_DELAY);
 
@@ -190,7 +190,7 @@ bool WebSettingsMgr::sync()
 }
 
 // Pass value by value, as we may have to modify it
-void WebSettingsMgr::writeValue(const uint16_t name, String value, const uint8_t datatype, const bool toPrefs)
+void WebSettingsStorage::writeValue(const uint16_t name, String value, const uint8_t datatype, const bool toPrefs)
 {
   xSemaphoreTake(mMutex, portMAX_DELAY);
 
@@ -251,7 +251,7 @@ void WebSettingsMgr::writeValue(const uint16_t name, String value, const uint8_t
   xSemaphoreGive(mMutex);
 }
 
-String WebSettingsMgr::readValue(uint16_t name, uint8_t dataType, boolean fromFlash)
+String WebSettingsStorage::readValue(uint16_t name, uint8_t dataType, boolean fromFlash)
 {
   String ret;
 
@@ -295,7 +295,7 @@ String WebSettingsMgr::readValue(uint16_t name, uint8_t dataType, boolean fromFl
   return ret;
 }
 
-String WebSettingsMgr::getString(uint16_t name, uint8_t groupNr) const
+String WebSettingsStorage::getString(uint16_t name, uint8_t groupNr) const
 {
   xSemaphoreTake(mMutex, portMAX_DELAY);
   const String ret = readValueFromMap<String>(getParmId(name,groupNr));
@@ -303,7 +303,7 @@ String WebSettingsMgr::getString(uint16_t name, uint8_t groupNr) const
   return ret;
 }
 
-int32_t WebSettingsMgr::getInt(uint16_t name, uint8_t u8_dataType) const
+int32_t WebSettingsStorage::getInt(uint16_t name, uint8_t u8_dataType) const
 {
   /*#ifdef WEBSET_DEBUG
   BSC_LOGI(TAG,"getInt(); name=%i",name);
@@ -336,40 +336,40 @@ int32_t WebSettingsMgr::getInt(uint16_t name, uint8_t u8_dataType) const
   return ret;
 }
 
-int32_t WebSettingsMgr::getInt(uint16_t name, uint8_t groupNr, uint8_t u8_dataType) const
+int32_t WebSettingsStorage::getInt(uint16_t name, uint8_t groupNr, uint8_t u8_dataType) const
 {
   return getInt(getParmId(name,groupNr),u8_dataType);
 }
 
-float WebSettingsMgr::getFloat(uint16_t name) const
+float WebSettingsStorage::getFloat(uint16_t name) const
 {
   // TODO MEJ Lock mutex
   return readValueFromMap<float>(name);
 }
-float WebSettingsMgr::getFloat(uint16_t name, uint8_t groupNr) const
+float WebSettingsStorage::getFloat(uint16_t name, uint8_t groupNr) const
 {
   return getFloat(getParmId(name, groupNr));
 }
 
-bool WebSettingsMgr::getBool(uint16_t name) const
+bool WebSettingsStorage::getBool(uint16_t name) const
 {
   // TODO MEJ Lock mutex
   return readValueFromMap<bool>(name);
 }
 
-bool WebSettingsMgr::getBool(uint16_t name, uint8_t groupNr) const
+bool WebSettingsStorage::getBool(uint16_t name, uint8_t groupNr) const
 {
   return getBool(getParmId(name, groupNr));
 }
 
 //Load Data from Flash
-int32_t WebSettingsMgr::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType) const
+int32_t WebSettingsStorage::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType) const
 {
   name = getParmId(name, groupNr);
   return getIntFlash(getParmId(name, groupNr), u8_dataType);
 }
 
-int32_t WebSettingsMgr::getIntFlash(uint16_t name, uint8_t u8_dataType) const
+int32_t WebSettingsStorage::getIntFlash(uint16_t name, uint8_t u8_dataType) const
 {
   // TODO MEJ Lock mutex
 
@@ -392,36 +392,36 @@ int32_t WebSettingsMgr::getIntFlash(uint16_t name, uint8_t u8_dataType) const
   }
 }
 
-float WebSettingsMgr::getFloatFlash(uint16_t name, uint8_t groupNr) const
+float WebSettingsStorage::getFloatFlash(uint16_t name, uint8_t groupNr) const
 {
   return getFloatFlash(getParmId(name, groupNr));
 }
 
-float WebSettingsMgr::getFloatFlash(uint16_t name) const
+float WebSettingsStorage::getFloatFlash(uint16_t name) const
 {
   // TODO MEJ Lock mutex
 
   return readValueFromPrefs<float>(name);
 }
 
-bool WebSettingsMgr::getBoolFlash(uint16_t name, uint8_t groupNr) const
+bool WebSettingsStorage::getBoolFlash(uint16_t name, uint8_t groupNr) const
 {
   return getBoolFlash(getParmId(name, groupNr));
 }
 
-bool WebSettingsMgr::getBoolFlash(uint16_t name) const
+bool WebSettingsStorage::getBoolFlash(uint16_t name) const
 {
   // TODO MEJ Lock mutex
 
   return readValueFromPrefs<bool>(name);
 }
 
-String WebSettingsMgr::getStringFlash(uint16_t name, uint8_t groupNr) const
+String WebSettingsStorage::getStringFlash(uint16_t name, uint8_t groupNr) const
 {
   return getStringFlash(getParmId(name, groupNr));
 }
 
-String WebSettingsMgr::getStringFlash(const String &name) const
+String WebSettingsStorage::getStringFlash(const String &name) const
 {
   // TODO MEJ Lock mutex
 
@@ -431,14 +431,14 @@ String WebSettingsMgr::getStringFlash(const String &name) const
     return readValueFromPrefs<String>(name);
 }
 
-String WebSettingsMgr::getStringFlash(uint16_t name) const
+String WebSettingsStorage::getStringFlash(uint16_t name) const
 {
   // TODO MEJ Lock mutex
 
   return readValueFromPrefs<String>(name);
 }
 
-void WebSettingsMgr::setParameter(uint16_t name, uint8_t group, const String &value, uint8_t u8_dataType)
+void WebSettingsStorage::setParameter(uint16_t name, uint8_t group, const String &value, uint8_t u8_dataType)
 {
   // TODO MEJ Lock mutex
 
@@ -447,7 +447,7 @@ void WebSettingsMgr::setParameter(uint16_t name, uint8_t group, const String &va
 
 // ----------------- private methods ----------------------------------------
 
-bool WebSettingsMgr::addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr)
+bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr)
 {
   bool hasNewKeys {false};
 
@@ -547,7 +547,7 @@ bool WebSettingsMgr::addDefaultValuesFromNewKeys(const char *parameter, uint32_t
 }
 
 //Lese Parameter aus Datei
-bool WebSettingsMgr::readConfig()
+bool WebSettingsStorage::readConfig()
 {
   assert(mFileSystem);
 
@@ -665,7 +665,7 @@ bool WebSettingsMgr::readConfig()
 }
 
 //Schreiben der Parameter in Datei
-bool WebSettingsMgr::writeConfig()
+bool WebSettingsStorage::writeConfig()
 {
   assert(mFileSystem);
 
@@ -748,7 +748,7 @@ bool WebSettingsMgr::writeConfig()
   #endif
 }
 
-void WebSettingsMgr::setValue(uint16_t name, const String &value, uint8_t dataType)
+void WebSettingsStorage::setValue(uint16_t name, const String &value, uint8_t dataType)
 {
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG,"setValue(): name=%i, value=%s, dataType=%i",name,value.c_str(),dataType);

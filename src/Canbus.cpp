@@ -5,7 +5,6 @@
 
 
 #include "Canbus.h"
-#include <web/WebSettingsMgr.h>
 #include "defines.h"
 #include "BmsData.h"
 #include "Ow.h"
@@ -13,6 +12,7 @@
 #include <ESP32TWAISingleton.hpp>
 #include "log.h"
 #include "AlarmRules.h"
+#include <web/WebSettingsStorage.h>
 
 static const char *TAG = "CAN";
 

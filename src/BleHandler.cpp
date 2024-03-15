@@ -10,7 +10,7 @@
 #include "devices/JkBmsBt.h"
 #include "devices/NeeyBalancer.h"
 #include "AlarmRules.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 
 static const char *TAG = "BLE_HANDLER";

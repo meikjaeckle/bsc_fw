@@ -7,7 +7,7 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "log.h"
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 
 static const char *TAG = "JBD_BMS";
 

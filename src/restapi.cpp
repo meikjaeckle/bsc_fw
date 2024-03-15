@@ -3,7 +3,7 @@
 #include "BmsData.h"
 #include "Ow.h"
 #include <json/Utils.h>
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 #include "dio.h"
 #include "Canbus.h"
 

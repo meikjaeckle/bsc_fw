@@ -23,14 +23,14 @@
 namespace web
 {
   // forward declaration
-  class WebSettingsMgr;
+  class WebSettingsStorage;
 }
 
 class WebSettings
 {
 public:
   WebSettings();
-  void init(web::WebSettingsMgr &mgr, const char *parameter, const String &confName);
+  void init(web::WebSettingsStorage &mgr, const char *parameter, const String &confName);
 
   // TODO MEJ Following methods are used by libwebapp2 library, that's why we have to provide a wrapper until libwebapp2 is updated
   boolean writeConfig();
@@ -73,7 +73,7 @@ private:
 
 private:
   SemaphoreHandle_t mMutex {nullptr};
-  web::WebSettingsMgr *mMgr {nullptr};
+  web::WebSettingsStorage *mMgr {nullptr};
   const char *mParameterFile {nullptr};
   String   mConfName {};
   String   mAjaxGetDataTimerHandlerName {};

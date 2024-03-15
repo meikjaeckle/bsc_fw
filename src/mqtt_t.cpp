@@ -9,7 +9,7 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include <web/WebSettingsMgr.h>
+#include <web/WebSettingsStorage.h>
 #include "defines.h"
 #include "BmsData.h"
 #include "Ow.h"
