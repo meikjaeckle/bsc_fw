@@ -67,12 +67,12 @@ private:
   void setInt(uint16_t name, int32_t value);
 
   template<typename T>
-  auto& getMapFromType();
+  constexpr auto& getMap();
 
   template<typename T>
-  const auto& getMapFromType() const
+  constexpr const auto& getMap() const
   {
-    return const_cast<WebSettingsStorage&>(*this).getMapFromType<T>();
+    return const_cast<WebSettingsStorage&>(*this).getMap<T>();
   }
 
   template<typename T>
@@ -108,7 +108,7 @@ private:
 
 
 template<typename T>
-auto& WebSettingsStorage::getMapFromType()
+constexpr auto& WebSettingsStorage::getMap()
 {
   if constexpr (std::is_same<T, int8_t>::value || std::is_same<T, uint8_t>::value)
     return mSettingValues_i8;
@@ -129,7 +129,7 @@ auto& WebSettingsStorage::getMapFromType()
 template<typename T>
 T WebSettingsStorage::readValueFromMap(uint16_t name) const
 {
-  const auto& map = getMapFromType<T>();
+  const auto& map = getMap<T>();
   return (map.contains(name) ? map.at(name) : T{});
 }
 

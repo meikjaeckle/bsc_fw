@@ -147,31 +147,31 @@ bool WebSettingsStorage::isKeyExist(uint16_t key, uint8_t u8_dataType) const
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
-      ret = mSettingValues_i8.contains(key);
+      ret = getMap<uint8_t>().contains(key);
       break;
     case PARAM_DT_I8:
-      ret = mSettingValues_i8.contains(key);
+      ret = getMap<int8_t>().contains(key);
       break;
     case PARAM_DT_U16:
-      ret = mSettingValues_i16.contains(key);
+      ret = getMap<uint16_t>().contains(key);
       break;
     case PARAM_DT_I16:
-      ret = mSettingValues_i16.contains(key);
+      ret = getMap<int16_t>().contains(key);
       break;
     case PARAM_DT_U32:
-      ret = mSettingValues_i32.contains(key);
+      ret = getMap<uint32_t>().contains(key);
       break;
     case PARAM_DT_I32:
-      ret = mSettingValues_i32.contains(key);
+      ret = getMap<int32_t>().contains(key);
       break;
     case PARAM_DT_FL:
-      ret = mSettingValues_fl.contains(key);
+      ret = getMap<float>().contains(key);
       break;
     case PARAM_DT_ST:
-      ret = mSettingValues_str.contains(key);
+      ret = getMap<String>().contains(key);
       break;
     case PARAM_DT_BO:
-      ret = mSettingValues_bo.contains(key);
+      ret = getMap<bool>().contains(key);
       break;
   }
   xSemaphoreGive(mMutex);
