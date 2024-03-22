@@ -24,7 +24,7 @@
 namespace web
 {
 
-namespace // anonymous namespace. only visible local
+namespace // anonymous namespace. only visible within file scope
 {
 
 // local helper methods

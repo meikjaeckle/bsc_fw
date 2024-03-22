@@ -57,11 +57,23 @@ public:
   void setParameter(uint16_t name, uint8_t group, const String &value, uint8_t dataType);
 
 private:
+  template <typename DATA_TYPE>
+  using SettingsMapT = spp::sparse_hash_map<uint16_t, DATA_TYPE>;
+
   bool addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr); // Called recursive
   bool readConfig();
   bool writeConfig();
   void setValue(uint16_t name, const String &value, uint8_t dataType);
   void setInt(uint16_t name, int32_t value);
+
+  template<typename T>
+  auto& getMapFromType();
+
+  template<typename T>
+  const auto& getMapFromType() const
+  {
+    return const_cast<WebSettingsStorage&>(*this).getMapFromType<T>();
+  }
 
   template<typename T>
   T readValueFromMap(uint16_t name) const;
@@ -81,44 +93,44 @@ private:
 private:
   static const String mBackupFilePath;
 
-  using SettingsMapI8_t     = spp::sparse_hash_map<uint16_t, int8_t>;
-  using SettingsMapI16_t    = spp::sparse_hash_map<uint16_t, int16_t>;
-  using SettingsMapI32_t    = spp::sparse_hash_map<uint16_t, int32_t>;
-  using SettingsMapFloat_t  = spp::sparse_hash_map<uint16_t, float>;
-  using SettingsMapBool_t   = spp::sparse_hash_map<uint16_t, bool>;
-  using SettingsMapString_t = spp::sparse_hash_map<uint16_t, String>;
-
   SemaphoreHandle_t   mMutex {nullptr};
 
-  SettingsMapI8_t     mSettingValues_i8;
-  SettingsMapI16_t    mSettingValues_i16;
-  SettingsMapI32_t    mSettingValues_i32;
-  SettingsMapFloat_t  mSettingValues_fl;
-  SettingsMapBool_t   mSettingValues_bo;
-  SettingsMapString_t mSettingValues_str;
-  fs::FS              *mFileSystem {nullptr};
-  Preferences         mPrefs;
-  String              mConfigFilePath;
+  SettingsMapT<int8_t>  mSettingValues_i8;
+  SettingsMapT<int16_t> mSettingValues_i16;
+  SettingsMapT<int32_t> mSettingValues_i32;
+  SettingsMapT<float>   mSettingValues_fl;
+  SettingsMapT<bool>    mSettingValues_bo;
+  SettingsMapT<String>  mSettingValues_str;
+  fs::FS                *mFileSystem {nullptr};
+  Preferences           mPrefs;
+  String                mConfigFilePath;
 };
 
 
 template<typename T>
-T WebSettingsStorage::readValueFromMap(uint16_t name) const
+auto& WebSettingsStorage::getMapFromType()
 {
   if constexpr (std::is_same<T, int8_t>::value || std::is_same<T, uint8_t>::value)
-    return mSettingValues_i8.contains(name) ? static_cast<T>(mSettingValues_i8.at(name)) : T{};
+    return mSettingValues_i8;
   else if constexpr (std::is_same<T, int16_t>::value || std::is_same<T, uint16_t>::value)
-    return mSettingValues_i16.contains(name) ? static_cast<T>(mSettingValues_i16.at(name)) : T{};
+    return mSettingValues_i16;
   else if constexpr (std::is_same<T, int32_t>::value || std::is_same<T, uint32_t>::value)
-    return mSettingValues_i32.contains(name) ? static_cast<T>(mSettingValues_i32.at(name)) : T{};
+    return mSettingValues_i32;
   else if constexpr (std::is_same<T, float>::value)
-    return mSettingValues_fl.contains(name) ? mSettingValues_fl.at(name) : T{};
+    return mSettingValues_fl;
   else if constexpr (std::is_same<T, String>::value)
-    return mSettingValues_str.contains(name) ? mSettingValues_str.at(name) : T{};
+    return mSettingValues_str;
   else if constexpr (std::is_same<T, bool>::value)
-    return mSettingValues_bo.contains(name) ? mSettingValues_bo.at(name) : T{};
+    return mSettingValues_bo;
   else
     static_assert(!std::is_same_v<T, T>, "Type is not supported"); // Helper to catch if the given type is not supported
+}
+
+template<typename T>
+T WebSettingsStorage::readValueFromMap(uint16_t name) const
+{
+  const auto& map = getMapFromType<T>();
+  return (map.contains(name) ? map.at(name) : T{});
 }
 
 template<typename T>
