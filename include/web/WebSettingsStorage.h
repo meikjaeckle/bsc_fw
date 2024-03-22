@@ -10,6 +10,7 @@
 #include <type_traits>
 
 #include <freertos/semphr.h>
+#include <kernelapi/rtos/Mutex.hpp>
 #include <Preferences.h>
 #include <sparsepp/spp.h>
 #include <WString.h> // String
@@ -24,9 +25,6 @@ namespace web
 
 class WebSettingsStorage
 {
-public:
-  WebSettingsStorage();
-  ~WebSettingsStorage();
 
 public:
   bool init(fs::FS &fs, const String &configFilePath);
@@ -91,9 +89,9 @@ private:
   void writeValueToPrefs(uint16_t name, const String &value);
 
 private:
-  static const String mBackupFilePath;
+  static const String   mBackupFilePath;
 
-  SemaphoreHandle_t   mMutex {nullptr};
+  mutable rtos::Mutex   mMutex; // mutable to have access in const method as well
 
   SettingsMapT<int8_t>  mSettingValues_i8;
   SettingsMapT<int16_t> mSettingValues_i16;
@@ -194,38 +192,37 @@ void WebSettingsStorage::writeValueToPrefs(uint16_t name, const String &valueToW
     static_assert(!std::is_same_v<T, T>, "Type is not supported"); // Helper to catch if the given type is not supported
 }
 
-// TODO MEJ Upate doc
 /**
- * A simple singleton wrapper for the ESP32TWAI class to support legacy code,
- * where global access to the ESP32TWAI class is required.
+ * A simple singleton wrapper for the WebSettingsStorageSingleton class to support legacy code,
+ * where global access to the WebSettingsStorageSingleton class is required.
  * @note If possible, don´t use the singleton, use some kind of dependency injection instead.
- * The #define "CAN" can be used as an "alias" to access the singleton object of the ESP32TWAI.
+ * The #define "WEBSETTINGS" can be used as an "alias" to access the singleton object of the WebSettingsStorageSingleton.
  */
-class WebSettingsMgrSingleton :
+class WebSettingsStorageSingleton :
   public WebSettingsStorage
 {
   private:
     // don't allow public construct/destruction
-    WebSettingsMgrSingleton()  = default;
-    ~WebSettingsMgrSingleton() = default;
+    WebSettingsStorageSingleton()  = default;
+    ~WebSettingsStorageSingleton() = default;
 
   // Make this class non-copyable, it`s a singleton
   public:
-    WebSettingsMgrSingleton(const WebSettingsMgrSingleton& other) = delete;
-    WebSettingsMgrSingleton& operator=(const WebSettingsMgrSingleton& other) = delete;
+    WebSettingsStorageSingleton(const WebSettingsStorageSingleton& other) = delete;
+    WebSettingsStorageSingleton& operator=(const WebSettingsStorageSingleton& other) = delete;
 
-    /** Returns the singleton instance (static) of the ESP32TWAISingleton.
+    /** Returns the singleton instance (static) of the WebSettingsStorageSingleton.
      *  The instance is created on the first call to getInstance.
     */
-    static WebSettingsMgrSingleton& getInstance()
+    static WebSettingsStorageSingleton& getInstance()
     {
-      static WebSettingsMgrSingleton instance;
+      static WebSettingsStorageSingleton instance;
       return instance;
     }
 };
 
 } // namespace web
 
-#define WEBSETTINGS (web::WebSettingsMgrSingleton::getInstance())
+#define WEBSETTINGS (web::WebSettingsStorageSingleton::getInstance())
 
 #endif // WEBSETTINGSMGR_HPP

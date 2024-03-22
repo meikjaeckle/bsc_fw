@@ -10,8 +10,10 @@
 #include <vector>
 
 #include <FS.h>
+#include <kernelapi/rtos/LockGuard.hpp>
 #include <sparsepp/spp.h>
 #include <WString.h>
+
 
 #include <crc.h>
 #include <defines.h>
@@ -79,19 +81,10 @@ static const char * TAG = "WEB_SETTINGS_MGR";
 
 /* static */ const String WebSettingsStorage::mBackupFilePath {"/WebSettings.sich"};
 
-WebSettingsStorage::WebSettingsStorage()
-  : mMutex(xSemaphoreCreateMutex())
-{
-  assert(mMutex && "WebSettingsStorage: Failed to create mutex");
-}
-
-WebSettingsStorage::~WebSettingsStorage()
-{
-  vSemaphoreDelete(mMutex);
-}
-
 bool WebSettingsStorage::init(fs::FS &fs, const String &configFilePath)
 {
+  const rtos::LockGuard lock(mMutex);
+
   mFileSystem = &fs;
   mConfigFilePath = configFilePath;
 
@@ -129,70 +122,51 @@ bool WebSettingsStorage::init(fs::FS &fs, const String &configFilePath)
 bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName)
 {
   assert(parameter);
-
-  // xSemaphoreTake(mMutex, portMAX_DELAY);
-
   constexpr uint8_t optionGroupNr {0};
-  const bool hasNewKeys = addDefaultValuesFromNewKeys(parameter, jsonStartPos, confName, optionGroupNr); // Called recursive
 
-  // xSemaphoreGive(mMutex);
-
-  return hasNewKeys;
+  const rtos::LockGuard lock(mMutex);
+  return addDefaultValuesFromNewKeys(parameter, jsonStartPos, confName, optionGroupNr); // Called recursive
 }
 
 bool WebSettingsStorage::isKeyExist(uint16_t key, uint8_t u8_dataType) const
 {
-  bool ret = false;
-  xSemaphoreTake(mMutex, portMAX_DELAY);
+  const rtos::LockGuard lock(mMutex);
+
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
-      ret = getMap<uint8_t>().contains(key);
-      break;
+      return getMap<uint8_t>().contains(key);
     case PARAM_DT_I8:
-      ret = getMap<int8_t>().contains(key);
-      break;
+      return getMap<int8_t>().contains(key);
     case PARAM_DT_U16:
-      ret = getMap<uint16_t>().contains(key);
-      break;
+      return getMap<uint16_t>().contains(key);
     case PARAM_DT_I16:
-      ret = getMap<int16_t>().contains(key);
-      break;
+      return getMap<int16_t>().contains(key);
     case PARAM_DT_U32:
-      ret = getMap<uint32_t>().contains(key);
-      break;
+      return getMap<uint32_t>().contains(key);
     case PARAM_DT_I32:
-      ret = getMap<int32_t>().contains(key);
-      break;
+      return getMap<int32_t>().contains(key);
     case PARAM_DT_FL:
-      ret = getMap<float>().contains(key);
-      break;
+      return getMap<float>().contains(key);
     case PARAM_DT_ST:
-      ret = getMap<String>().contains(key);
-      break;
+      return getMap<String>().contains(key);
     case PARAM_DT_BO:
-      ret = getMap<bool>().contains(key);
-      break;
+      return getMap<bool>().contains(key);
+    default:
+      return false;
   }
-  xSemaphoreGive(mMutex);
-  return ret;
 }
 
 bool WebSettingsStorage::sync()
 {
-  xSemaphoreTake(mMutex, portMAX_DELAY);
-
-  const bool ret = writeConfig();
-
-  xSemaphoreGive(mMutex);
-
-  return ret;
+  const rtos::LockGuard lock(mMutex);
+  return writeConfig();
 }
 
 // Pass value by value, as we may have to modify it
 void WebSettingsStorage::writeValue(const uint16_t name, String value, const uint8_t datatype, const bool toPrefs)
 {
-  xSemaphoreTake(mMutex, portMAX_DELAY);
+  const rtos::LockGuard lock(mMutex);
 
   if (toPrefs) //Store  in Flash
   {
@@ -247,15 +221,14 @@ void WebSettingsStorage::writeValue(const uint16_t name, String value, const uin
 
     setValue(name, value, datatype);
   }
-
-  xSemaphoreGive(mMutex);
 }
 
 String WebSettingsStorage::readValue(uint16_t name, uint8_t dataType, boolean fromFlash)
 {
+  const rtos::LockGuard lock(mMutex);
+
   String ret;
 
-  xSemaphoreTake(mMutex, portMAX_DELAY);
   switch(dataType)
   {
     case PARAM_DT_U8:
@@ -286,7 +259,6 @@ String WebSettingsStorage::readValue(uint16_t name, uint8_t dataType, boolean fr
       ret = readValueAsString<bool>(name, fromFlash);
       break;
   }
-  xSemaphoreGive(mMutex);
 
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG,"readValue(): name=%i, fromFlash=%d, dataType=%i, string: %s", name, fromFlash, dataType, ret.c_str());
@@ -297,10 +269,8 @@ String WebSettingsStorage::readValue(uint16_t name, uint8_t dataType, boolean fr
 
 String WebSettingsStorage::getString(uint16_t name, uint8_t groupNr) const
 {
-  xSemaphoreTake(mMutex, portMAX_DELAY);
-  const String ret = readValueFromMap<String>(getParmId(name,groupNr));
-  xSemaphoreGive(mMutex);
-  return ret;
+  const rtos::LockGuard lock(mMutex);
+  return readValueFromMap<String>(getParmId(name,groupNr));
 }
 
 int32_t WebSettingsStorage::getInt(uint16_t name, uint8_t u8_dataType) const
@@ -309,31 +279,25 @@ int32_t WebSettingsStorage::getInt(uint16_t name, uint8_t u8_dataType) const
   BSC_LOGI(TAG,"getInt(); name=%i",name);
   #endif*/
 
-  uint32_t ret = 0;
-  xSemaphoreTake(mMutex, portMAX_DELAY);
+  const rtos::LockGuard lock(mMutex);
+
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
-      ret = readValueFromMap<uint8_t>(name);
-      break;
+      return readValueFromMap<uint8_t>(name);
     case PARAM_DT_I8:
-      ret = readValueFromMap<int8_t>(name);
-      break;
+      return readValueFromMap<int8_t>(name);
     case PARAM_DT_U16:
-      ret = readValueFromMap<uint16_t>(name);
-      break;
+      return readValueFromMap<uint16_t>(name);
     case PARAM_DT_I16:
-      ret = readValueFromMap<int16_t>(name);
-      break;
+      return readValueFromMap<int16_t>(name);
     case PARAM_DT_U32:
-      ret = readValueFromMap<uint32_t>(name);
-      break;
+      return readValueFromMap<uint32_t>(name);
     case PARAM_DT_I32:
-      ret = readValueFromMap<int32_t>(name);
-      break;
+      return readValueFromMap<int32_t>(name);
+    default:
+      return {};
   }
-  xSemaphoreGive(mMutex);
-  return ret;
 }
 
 int32_t WebSettingsStorage::getInt(uint16_t name, uint8_t groupNr, uint8_t u8_dataType) const
@@ -343,7 +307,7 @@ int32_t WebSettingsStorage::getInt(uint16_t name, uint8_t groupNr, uint8_t u8_da
 
 float WebSettingsStorage::getFloat(uint16_t name) const
 {
-  // TODO MEJ Lock mutex
+  const rtos::LockGuard lock(mMutex);
   return readValueFromMap<float>(name);
 }
 float WebSettingsStorage::getFloat(uint16_t name, uint8_t groupNr) const
@@ -353,7 +317,7 @@ float WebSettingsStorage::getFloat(uint16_t name, uint8_t groupNr) const
 
 bool WebSettingsStorage::getBool(uint16_t name) const
 {
-  // TODO MEJ Lock mutex
+  const rtos::LockGuard lock(mMutex);
   return readValueFromMap<bool>(name);
 }
 
@@ -371,7 +335,7 @@ int32_t WebSettingsStorage::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t 
 
 int32_t WebSettingsStorage::getIntFlash(uint16_t name, uint8_t u8_dataType) const
 {
-  // TODO MEJ Lock mutex
+  const rtos::LockGuard lock(mMutex);
 
   switch(u8_dataType)
   {
@@ -399,8 +363,7 @@ float WebSettingsStorage::getFloatFlash(uint16_t name, uint8_t groupNr) const
 
 float WebSettingsStorage::getFloatFlash(uint16_t name) const
 {
-  // TODO MEJ Lock mutex
-
+  const rtos::LockGuard lock(mMutex);
   return readValueFromPrefs<float>(name);
 }
 
@@ -411,8 +374,7 @@ bool WebSettingsStorage::getBoolFlash(uint16_t name, uint8_t groupNr) const
 
 bool WebSettingsStorage::getBoolFlash(uint16_t name) const
 {
-  // TODO MEJ Lock mutex
-
+  const rtos::LockGuard lock(mMutex);
   return readValueFromPrefs<bool>(name);
 }
 
@@ -423,7 +385,7 @@ String WebSettingsStorage::getStringFlash(uint16_t name, uint8_t groupNr) const
 
 String WebSettingsStorage::getStringFlash(const String &name) const
 {
-  // TODO MEJ Lock mutex
+  const rtos::LockGuard lock(mMutex);
 
   if(name.isEmpty())
     return emptyString;
@@ -433,14 +395,14 @@ String WebSettingsStorage::getStringFlash(const String &name) const
 
 String WebSettingsStorage::getStringFlash(uint16_t name) const
 {
-  // TODO MEJ Lock mutex
+  const rtos::LockGuard lock(mMutex);
 
   return readValueFromPrefs<String>(name);
 }
 
 void WebSettingsStorage::setParameter(uint16_t name, uint8_t group, const String &value, uint8_t u8_dataType)
 {
-  // TODO MEJ Lock mutex
+  const rtos::LockGuard lock(mMutex);
 
   setValue(getParmId(name, group), value, u8_dataType);
 }
@@ -551,7 +513,6 @@ bool WebSettingsStorage::readConfig()
 {
   assert(mFileSystem);
 
-  // TODO MEJ Lock mutex ?
 
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG,"readConfig()");
