@@ -642,8 +642,10 @@ bool WebSettingsStorage::writeConfig()
   File f = mFileSystem->open(mConfigFilePath,"w");
   if (f)
   {
+    // lambda to print the parameter to file, takes care about the type
     auto PrintToFile = [&f](const auto& element)
     {
+        // lambda to get the type dependend format string
         auto FormatStr = []<typename T>(T x) constexpr
         {
             if constexpr (std::is_same_v<T, int8_t>)
