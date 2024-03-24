@@ -58,7 +58,12 @@ private:
   template <typename DATA_TYPE>
   using SettingsMapT = spp::sparse_hash_map<uint16_t, DATA_TYPE>;
 
-  bool addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr); // Called recursive
+// Note: Private methods does actually not lock the mutex.
+// If it is required to lock the mutex in private methods,
+// take care that it is not locked recursive or switch the mutex to rtos::RecursiveMutex
+private:
+  bool doCheckKeyExist(uint16_t key, uint8_t dataType) const;
+  bool doAddDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr); // Called recursive
   bool readConfig();
   bool writeConfig();
   void setValue(uint16_t name, const String &value, uint8_t dataType);

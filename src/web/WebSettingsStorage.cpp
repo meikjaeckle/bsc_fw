@@ -130,36 +130,13 @@ bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint
   constexpr uint8_t optionGroupNr {0};
 
   const rtos::LockGuard lock(mMutex);
-  return addDefaultValuesFromNewKeys(parameter, jsonStartPos, confName, optionGroupNr); // Called recursive
+  return doAddDefaultValuesFromNewKeys(parameter, jsonStartPos, confName, optionGroupNr); // Called recursive
 }
 
-bool WebSettingsStorage::isKeyExist(uint16_t key, uint8_t u8_dataType) const
+bool WebSettingsStorage::isKeyExist(uint16_t key, uint8_t dataType) const
 {
   const rtos::LockGuard lock(mMutex);
-
-  switch(u8_dataType)
-  {
-    case PARAM_DT_U8:
-      return getMap<uint8_t>().contains(key);
-    case PARAM_DT_I8:
-      return getMap<int8_t>().contains(key);
-    case PARAM_DT_U16:
-      return getMap<uint16_t>().contains(key);
-    case PARAM_DT_I16:
-      return getMap<int16_t>().contains(key);
-    case PARAM_DT_U32:
-      return getMap<uint32_t>().contains(key);
-    case PARAM_DT_I32:
-      return getMap<int32_t>().contains(key);
-    case PARAM_DT_FL:
-      return getMap<float>().contains(key);
-    case PARAM_DT_ST:
-      return getMap<String>().contains(key);
-    case PARAM_DT_BO:
-      return getMap<bool>().contains(key);
-    default:
-      return false;
-  }
+  return doCheckKeyExist(key, dataType);
 }
 
 bool WebSettingsStorage::sync()
@@ -412,12 +389,39 @@ void WebSettingsStorage::setParameter(uint16_t name, uint8_t group, const String
 
 // ----------------- private methods ----------------------------------------
 
-bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr)
+bool WebSettingsStorage::doCheckKeyExist(uint16_t key, uint8_t u8_dataType) const
+{
+  switch(u8_dataType)
+  {
+    case PARAM_DT_U8:
+      return getMap<uint8_t>().contains(key);
+    case PARAM_DT_I8:
+      return getMap<int8_t>().contains(key);
+    case PARAM_DT_U16:
+      return getMap<uint16_t>().contains(key);
+    case PARAM_DT_I16:
+      return getMap<int16_t>().contains(key);
+    case PARAM_DT_U32:
+      return getMap<uint32_t>().contains(key);
+    case PARAM_DT_I32:
+      return getMap<int32_t>().contains(key);
+    case PARAM_DT_FL:
+      return getMap<float>().contains(key);
+    case PARAM_DT_ST:
+      return getMap<String>().contains(key);
+    case PARAM_DT_BO:
+      return getMap<bool>().contains(key);
+    default:
+      return false;
+  }
+}
+
+bool WebSettingsStorage::doAddDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos, const String &confName, uint8_t aktOptionGroupNr)
 {
   bool hasNewKeys {false};
 
   #ifdef WEBSET_DEBUG
-  BSC_LOGI(TAG,"addDefaultValuesFromNewKeys: confName=%s, arraySize=%i", confName.c_str(), json::getArraySize(parameter, jsonStartPos));
+  BSC_LOGI(TAG,"doAddDefaultValuesFromNewKeys: confName=%s, arraySize=%i", confName.c_str(), json::getArraySize(parameter, jsonStartPos));
   #endif
   for (uint8_t a {0}; a < json::getArraySize(parameter, jsonStartPos); a++)
   {
@@ -432,7 +436,7 @@ bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint
         String retStr;
         uint32_t jsonArrayGroupStart {0};
         json::getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);  // TODO MEJ Handle return value
-        hasNewKeys |= addDefaultValuesFromNewKeys(parameter, jsonArrayGroupStart, confName, g); // Recursive call of this method!
+        hasNewKeys |= doAddDefaultValuesFromNewKeys(parameter, jsonArrayGroupStart, confName, g); // Recursive call of this method!
       }
     }
     else
@@ -449,7 +453,7 @@ bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint
         retStr_default.clear();
         json::getValue(parameter, a, "default", jsonStartPos, retStr_default, u32_tmp);
 
-        if((jsonNameBase!= 0) && (isKeyExist(jsonName, u8_dataType)==false))
+        if((jsonNameBase!= 0) && (doCheckKeyExist(jsonName, u8_dataType)==false))
         {
           hasNewKeys = true;
           //const auto [id, group] = getIdFromParamId(jsonName);
@@ -503,7 +507,7 @@ bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint
     }
   }
   #ifdef WEBSET_DEBUG
-  BSC_LOGI(TAG,"addDefaultValuesFromNewKeys: finish");
+  BSC_LOGI(TAG,"doAddDefaultValuesFromNewKeys: finish");
   #endif
 
   return hasNewKeys;
