@@ -14,7 +14,10 @@ namespace web
 {
 
 bool isNumber(const String& str);
-uint16_t getParmId(uint16_t id, uint8_t groupIdx);
+constexpr uint16_t getParmId(uint16_t id, uint8_t groupIdx)
+{
+  return (id<<6) | (groupIdx&0x3F);
+}
 
 // Json helper methods for WebSettings
 

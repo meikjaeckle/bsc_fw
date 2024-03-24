@@ -23,11 +23,6 @@ bool isNumber(const String& str)
   return true;
 }
 
-uint16_t getParmId(uint16_t id, uint8_t groupIdx)
-{
-  return (id<<6) | (groupIdx&0x3F);
-}
-
 //Universal
 String getJson_Key(const char *parameter, const String &key, uint8_t idx, uint32_t startPos, const String &defaultValue)
 {
