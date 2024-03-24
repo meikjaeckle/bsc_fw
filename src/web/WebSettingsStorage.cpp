@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdint>
 #include <type_traits>
+#include <utility> // std::pair
 #include <vector>
 
 #include <FS.h>
@@ -31,10 +32,14 @@ namespace // anonymous namespace. only visible within file scope
 
 // local helper methods
 
-void getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx)
+// returns "uint16_t id" and "uint8_t groupIdx" as std::pair<uint16_t, uint8_t>
+// example usage:
+//    const auto [u16_lParamId, u8_lParamGroup] = getIdFromParamId(name);
+constexpr auto getIdFromParamId(uint16_t paramId)
 {
-  id = ((paramId>>6) & 0x3FF);
-  groupIdx = (paramId & 0x3F);
+  const uint16_t id = ((paramId>>6) & 0x3FF);
+  const uint8_t groupIdx = (paramId & 0x3F);
+  return std::pair<uint16_t, uint8_t> {id, groupIdx};
 }
 
 uint32_t copyFile(fs::FS &fs, const String &fileSrc, const String &fileDst)
@@ -175,9 +180,7 @@ void WebSettingsStorage::writeValue(const uint16_t name, String value, const uin
     #endif
 
     //Spezielle Parameter vor dem Speichern ändern
-    uint16_t u16_lParamId  {0};
-    uint8_t u8_lParamGroup {0};
-    getIdFromParamId(name, u16_lParamId, u8_lParamGroup);
+    const auto [u16_lParamId, u8_lParamGroup] = getIdFromParamId(name);
 
     if(u16_lParamId==ID_PARAM_SS_BTDEVMAC)
       value.toLowerCase();
@@ -449,9 +452,7 @@ bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint
         if((jsonNameBase!= 0) && (isKeyExist(jsonName, u8_dataType)==false))
         {
           hasNewKeys = true;
-          uint16_t id=0;
-          uint8_t group=0;
-          web::getIdFromParamId(jsonName,id,group);
+          //const auto [id, group] = getIdFromParamId(jsonName);
           //BSC_LOGI(TAG,"newDefKeyInRam: key=%i, val=%s, dt=%i, id=%i, group=%i",jsonName,retStr_default.c_str(),u8_dataType,id,group);
           setValue(jsonName, retStr_default, u8_dataType);
         }
@@ -463,10 +464,10 @@ bool WebSettingsStorage::addDefaultValuesFromNewKeys(const char *parameter, uint
           hasNewKeys = true;
           retStr_default.clear();
           json::getValue(parameter, a, "default", jsonStartPos, retStr_default, u32_tmp);
-          uint16_t id=0;
-          uint8_t group=0;
-          getIdFromParamId(jsonName,id,group);
+
+          //const auto [id, group] = getIdFromParamId(jsonName);
           //BSC_LOGI(TAG,"newDefKeyInFlash: key=%i, val=%s, dt=%i, id=%i, group=%i",jsonName,retStr_default.c_str(),u8_dataType,id,group);
+
           switch(u8_dataType)
           {
             case PARAM_DT_U8:
