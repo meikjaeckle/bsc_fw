@@ -4,14 +4,14 @@
 // https://opensource.org/licenses/MIT
 
 #include <freertos/FreeRTOS.h>
-#include "inverter/Inverter.hpp"
-#include "inverter/BmsDataUtils.hpp"
-#include "inverter/ChargeCurrentCtrl.hpp"
-#include "inverter/DisChargeCurrentCtrl.hpp"
-#include "inverter/ChargeVoltageCtrl.hpp"
-#include "inverter/SocCtrl.hpp"
-#include "inverter/InverterBattery.hpp"
-#include "inverter/Canbus.hpp"
+#include "inverters/Inverter.hpp"
+#include "inverters/BmsDataUtils.hpp"
+#include "inverters/ChargeCurrentCtrl.hpp"
+#include "inverters/DisChargeCurrentCtrl.hpp"
+#include "inverters/ChargeVoltageCtrl.hpp"
+#include "inverters/SocCtrl.hpp"
+#include "inverters/InverterBattery.hpp"
+#include "inverters/Canbus.hpp"
 
 #include "WebSettings.h"
 #include "defines.h"

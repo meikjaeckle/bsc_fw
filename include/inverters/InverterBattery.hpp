@@ -6,7 +6,7 @@
 #pragma once
 
 #include <cstdint>
-#include "inverter/Inverter.hpp"
+#include "inverters/Inverter.hpp"
 
 
 namespace inverters
@@ -19,5 +19,7 @@ class InverterBattery
   int16_t getBatteryTemp(InverterData &inverterData);
 
   private:
+  int16_t _batteryVoltage;
+
 };
 } // namespace inverters

@@ -3,7 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "inverter/BmsDataUtils.hpp"
+#include "inverters/BmsDataUtils.hpp"
 #include "defines.h"
 #include "BmsData.h"
 

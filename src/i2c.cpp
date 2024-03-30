@@ -8,7 +8,7 @@
 #include "defines.h"
 #include "log.h"
 #include "WebSettings.h"
-#include "inverter/Inverter.hpp"
+#include "inverters/Inverter.hpp"
 #include "AlarmRules.h"
 #include "BmsData.h"
 #include "mcp23017.h"

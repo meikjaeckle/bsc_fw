@@ -4,9 +4,9 @@
 // https://opensource.org/licenses/MIT
 
 #include <array>
-#include "inverter/Canbus.hpp"
-#include "inverter/InverterBattery.hpp"
-#include "inverter/BmsDataUtils.hpp"
+#include "inverters/Canbus.hpp"
+#include "inverters/InverterBattery.hpp"
+#include "inverters/BmsDataUtils.hpp"
 #include <ESP32TWAISingleton.hpp>
 #include "defines.h"
 #include "WebSettings.h"

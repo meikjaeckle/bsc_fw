@@ -6,10 +6,10 @@
 #include "defines.h"
 
 #include "WebSettings.h"
-#include "inverter/BmsDataUtils.hpp"
-#include "inverter/Inverter.hpp"
-#include "inverter/InverterData.hpp"
-#include "inverter/SocCtrl.hpp"
+#include "inverters/BmsDataUtils.hpp"
+#include "inverters/Inverter.hpp"
+#include "inverters/InverterData.hpp"
+#include "inverters/SocCtrl.hpp"
 
 namespace inverters
 {

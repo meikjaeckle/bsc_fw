@@ -17,7 +17,7 @@
 #include "bscTime.h"
 #include "BmsData.h"
 #include "WebSettings.h"
-#include "inverter/Inverter.hpp"
+#include "inverters/Inverter.hpp"
 
 static const char *TAG = "LOG";
 

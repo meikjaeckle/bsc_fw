@@ -6,7 +6,7 @@
 #pragma once
 
 #include <cstdint>
-#include "inverter/Inverter.hpp"
+#include "inverters/Inverter.hpp"
 
 
 namespace inverters

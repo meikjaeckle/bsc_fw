@@ -13,7 +13,7 @@
 #include "FreqCountESP.h"
 #include "log.h"
 #include "WebSettings.h"
-#include "inverter/Inverter.hpp"
+#include "inverters/Inverter.hpp"
 #ifdef LILYGO_TCAN485
 #include <Adafruit_NeoPixel.h>
 #endif
@@ -249,7 +249,7 @@ bool setVirtualTrigger(uint8_t triggerNr, bool val)
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
-void runAlarmRules(Inverter &inverter)
+void runAlarmRules(inverters::Inverter &inverter)
 {
   uint8_t i;
   bool bo_lChangeAlarmSettings=false;

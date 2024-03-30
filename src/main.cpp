@@ -37,8 +37,8 @@
 #endif
 
 #include "defines.h"
-#include "inverter/Inverter.hpp"
-#include "inverter/Canbus.hpp"
+#include "inverters/Inverter.hpp"
+#include "inverters/Canbus.hpp"
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "params.h"

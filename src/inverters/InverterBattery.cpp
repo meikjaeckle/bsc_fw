@@ -3,8 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "inverter/InverterBattery.hpp"
-#include "inverter/BmsDataUtils.hpp"
+#include "inverters/InverterBattery.hpp"
+#include "inverters/BmsDataUtils.hpp"
 #include "defines.h"
 #include "WebSettings.h"
 

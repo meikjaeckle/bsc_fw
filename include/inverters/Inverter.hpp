@@ -6,7 +6,7 @@
 #pragma once
 
 #include <cstdint>
-#include <inverter/InverterData.hpp>
+#include <inverters/InverterData.hpp>
 #ifndef PIO_UNIT_TESTING
 #include "WebSettings.h"
 #endif
