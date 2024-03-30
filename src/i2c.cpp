@@ -31,7 +31,6 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 
 void isI2CdeviceConn();
 void displaySendData_bms(inverters::Inverter &inverter);
-void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
 void i2cInitExtSerial();
@@ -217,7 +216,7 @@ void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, u
 }
 
 
-void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, String data)
+void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const String& data)
 {
   i2cSendData(inverter, i2cAdr, data1, data2, data3, data.c_str(), data.length() + 1); // Sending string including null character!
 }
