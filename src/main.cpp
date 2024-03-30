@@ -785,7 +785,8 @@ void task_i2c(void *param)
       String ipAddr;
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
-      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16); // TODO MEJ data size not required for string, could result fault memory access!
+      //i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16); // TODO MEJ data size not required for string, could result fault memory access!
+      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr); // TODO MEJ does the i2c receiver expect always chars, as set above ??
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
