@@ -3,6 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+#include <array>
 #include "inverter/Canbus.hpp"
 #include "inverter/InverterBattery.hpp"
 #include "inverter/BmsDataUtils.hpp"
@@ -11,96 +12,93 @@
 #include "WebSettings.h"
 #include "BmsData.h"
 
-namespace nsCanbus
+namespace inverters
 {
-  const char *Canbus::TAG = "Canbus";
+namespace // anonymous
+{
+constexpr const char TAG[] = "Canbus";
+}
 
-  Canbus::Canbus()
+void Canbus::init()
+{
+  #ifdef LILYGO_TCAN485
+  pinMode(TCAN485_PIN_5V_EN, OUTPUT);
+  digitalWrite(TCAN485_PIN_5V_EN, HIGH);
+
+  pinMode(TCAN485_CAN_SE_PIN, OUTPUT);
+  digitalWrite(TCAN485_CAN_SE_PIN, LOW);
+  #endif
+  constexpr bool CAN_ENABLE_ALERTS {true};
+  constexpr std::size_t CAN_RX_QUEUE_LENGTH {10};
+  constexpr std::size_t CAN_TX_QUEUE_LENGTH {10};
+  const can::Baudrate baudrate = (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN)==ID_CAN_DEVICE_VICTRON_250K) ? can::Baudrate::BAUD_250KBPS :
+                                                                                                                          can::Baudrate::BAUD_500KBPS;
+  const esp_err_t err = CAN.begin(GPIO_NUM_5, // Rx pin
+                                  GPIO_NUM_4, // Tx pin
+                                  baudrate,
+                                  CAN_ENABLE_ALERTS,
+                                  CAN_RX_QUEUE_LENGTH,
+                                  CAN_TX_QUEUE_LENGTH);
+  BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
+}
+
+
+void Canbus::sendBmsCanMessages(inverters::InverterData &inverterData)
+{
+  switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
   {
+    case ID_CAN_DEVICE_DEYE:
+    case ID_CAN_DEVICE_SOLISRHI:
+      sendCanMsg_ChgVoltCur_DisChgCur_351(inverterData);
+      sendCanMsg_soc_soh_355(inverterData);
+      sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData);
+
+      vTaskDelay(pdMS_TO_TICKS(50));
+
+      sendCanMsg_hostname_35e_370_371();
+      sendCanMsg_Alarm_359(inverterData);
+      break;
+
+    case ID_CAN_DEVICE_VICTRON:
+    case ID_CAN_DEVICE_VICTRON_250K:
+      // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
+      sendCanMsg_ChgVoltCur_DisChgCur_351(inverterData);
+      sendCanMsg_hostname_35e_370_371();
+      sendCanMsg_Alarm_35a(inverterData);
+
+      sendCanMsg_battery_modules_372(inverterData);
+      sendCanMsg_version_35f();
+
+      sendCanMsg_soc_soh_355(inverterData);
+      sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData);
+      sendCanMsg_min_max_values_373_376_377(inverterData);
+
+      //Send extended data
+      if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
+      {
+        sendExtendedCanMsgTemp();
+        sendExtendedCanMsgBmsData();
+      }
+      //374, 359
+      break;
+
+    default:
+      break;
   }
 
-  Canbus::~Canbus()
-  {
-  }
+  // ID:305 Heartbeat Inverter
+}
 
 
-  void Canbus::init()
-  {
-    #ifdef LILYGO_TCAN485
-    pinMode(TCAN485_PIN_5V_EN, OUTPUT);
-    digitalWrite(TCAN485_PIN_5V_EN, HIGH);
-
-    pinMode(TCAN485_CAN_SE_PIN, OUTPUT);
-    digitalWrite(TCAN485_CAN_SE_PIN, LOW);
-    #endif
-
-    constexpr bool CAN_ENABLE_ALERTS {true};
-    constexpr std::size_t CAN_RX_QUEUE_LENGTH {10};
-    constexpr std::size_t CAN_TX_QUEUE_LENGTH {10};
-    const can::Baudrate baudrate = (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN)==ID_CAN_DEVICE_VICTRON_250K) ? can::Baudrate::BAUD_250KBPS :
-                                                                                                                            can::Baudrate::BAUD_500KBPS;
-    const esp_err_t err = CAN.begin(CAN_RX_PIN,
-                                    CAN_TX_PIN,
-                                    baudrate,
-                                    CAN_ENABLE_ALERTS,
-                                    CAN_RX_QUEUE_LENGTH,
-                                    CAN_TX_QUEUE_LENGTH);
+void Canbus::sendCanMsg(uint32_t identifier, const uint8_t *buffer, uint8_t length)
+{
+  // TODO MEJ: fix constness in CAN.write on parameter buffer
+  const esp_err_t err = CAN.write(can::FrameType::STD_FRAME, identifier, length, const_cast<uint8_t *>(buffer));
+  if(err!=ESP_OK)
     BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
-  }
-
-
-  void Canbus::sendBmsCanMessages(Inverter::inverterData_s &inverterData)
-  {
-    switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
-    {
-      case ID_CAN_DEVICE_DEYE:
-      case ID_CAN_DEVICE_SOLISRHI:
-        sendCanMsg_ChgVoltCur_DisChgCur_351(inverterData);
-        sendCanMsg_soc_soh_355(inverterData);
-        sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        sendCanMsg_hostname_35e_370_371();
-        sendCanMsg_Alarm_359(inverterData);
-        break;
-
-      case ID_CAN_DEVICE_VICTRON:
-      case ID_CAN_DEVICE_VICTRON_250K:
-        // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
-        sendCanMsg_ChgVoltCur_DisChgCur_351(inverterData);
-        sendCanMsg_hostname_35e_370_371();
-        sendCanMsg_Alarm_35a(inverterData);
-
-        sendCanMsg_battery_modules_372(inverterData);
-        sendCanMsg_version_35f();
-
-        sendCanMsg_soc_soh_355(inverterData);
-        sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData);
-        sendCanMsg_min_max_values_373_376_377(inverterData);
-
-        //Send extended data
-        if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
-        {
-          sendExtendedCanMsgTemp();
-          sendExtendedCanMsgBmsData();
-        }
-        //374, 359
-        break;
-
-      default:
-        break;
-    }
-
-    // ID:305 Heartbeat Inverter
-  }
-
-
-  void Canbus::sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length)
-  {
-  esp_err_t err = CAN.write(can::FrameType::STD_FRAME,identifier,length,buffer);
-  if(err!=ESP_OK) BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
 
   #ifdef CAN_DEBUG_STATUS
-  twai_status_info_t canStatus = CAN.getStatus();
+  const twai_status_info_t canStatus = CAN.getStatus();
 
   if(err!=ESP_OK || canStatus.state!=1 || canStatus.tx_error_counter!=0 || canStatus.tx_failed_count!=0 || canStatus.arb_lost_count!=0 || canStatus.bus_error_count!=0)
   {
@@ -128,13 +126,8 @@ namespace nsCanbus
   }
 
 
-  void Canbus::readCanMessages(Inverter::inverterData_s &inverterData)
+void Canbus::readCanMessages(inverters::InverterData &inverterData)
   {
-  twai_message_t canMessage;
-  twai_status_info_t canStatus;
-
-  canStatus = CAN.getStatus();
-
   // JK-BMS CAN
   bool isJkCanBms=false;
   uint8_t u8_jkCanBms;
@@ -151,21 +144,24 @@ namespace nsCanbus
       }
   }
 
-
   for(uint8_t i=0;i<10;i++)
   {
-      canStatus = CAN.getStatus();
-      if(canStatus.msgs_to_rx==0) break;
-      CAN.read(&canMessage);
+    const twai_status_info_t canStatus = CAN.getStatus();
 
-      #ifdef CAN_DEBUG
-      BSC_LOGI(TAG,"RX ID: %i",canMessage.identifier);
-      #endif
+    if(canStatus.msgs_to_rx==0)
+      break;
 
-      /*uint16_t canId11bit=(canMessage.identifier&0x7FF);
-      BSC_LOGI(TAG,"RX Extd=%i, ID=%i, 11bit=%i, len=%i",canMessage.extd,canMessage.identifier,canId11bit,canMessage.data_length_code);
-      if(canMessage.data_length_code>0)
-      {
+    twai_message_t canMessage {};
+    CAN.read(&canMessage);
+
+    #ifdef CAN_DEBUG
+    BSC_LOGI(TAG,"RX ID: %i",canMessage.identifier);
+    #endif
+
+    /*uint16_t canId11bit=(canMessage.identifier&0x7FF);
+    BSC_LOGI(TAG,"RX Extd=%i, ID=%i, 11bit=%i, len=%i",canMessage.extd,canMessage.identifier,canId11bit,canMessage.data_length_code);
+    if(canMessage.data_length_code>0)
+    {
       String data="";
       for(uint8_t i=0; i<canMessage.data_length_code;i++)
       {
@@ -173,29 +169,29 @@ namespace nsCanbus
           data+=" ";
       }
       BSC_LOGI(TAG,"RX data=%s",data.c_str());
-      }*/
+    }*/
 
-      if(isJkCanBms)
+    if(isJkCanBms)
+    {
+      if(canMessage.identifier == 0x02F4) //756; Battery status informatio
       {
-      if(canMessage.identifier==0x02F4) //756; Battery status informatio
-      {
-          int16_t can_batVolt=0;
-          int16_t can_batCurr=0;
-          uint8_t can_soc=0;
+        int16_t can_batVolt=0;
+        int16_t can_batCurr=0;
+        uint8_t can_soc=0;
 
-          can_batVolt = ((int16_t)canMessage.data[1]<<8 | canMessage.data[0])*10; //Strom mit 10 multiplizieren; für BmsData
+        can_batVolt = ((int16_t)canMessage.data[1]<<8 | canMessage.data[0])*10; //Strom mit 10 multiplizieren; für BmsData
 
-          can_batCurr = ((int16_t)canMessage.data[3]<<8 | canMessage.data[2])-4000;
-          can_batCurr*=10; //Strom mit 10 multiplizieren; für BmsData
+        can_batCurr = ((int16_t)canMessage.data[3]<<8 | canMessage.data[2])-4000;
+        can_batCurr*=10; //Strom mit 10 multiplizieren; für BmsData
 
-          can_soc = canMessage.data[4];
+        can_soc = canMessage.data[4];
 
-          setBmsTotalVoltage_int(u8_jkCanBms,can_batVolt);
-          setBmsTotalCurrent_int(u8_jkCanBms,can_batCurr);
-          setBmsChargePercentage(u8_jkCanBms,can_soc);
-          setBmsLastDataMillis(u8_jkCanBms,millis());
+        setBmsTotalVoltage_int(u8_jkCanBms,can_batVolt);
+        setBmsTotalCurrent_int(u8_jkCanBms,can_batCurr);
+        setBmsChargePercentage(u8_jkCanBms,can_soc);
+        setBmsLastDataMillis(u8_jkCanBms,millis());
 
-          //BSC_LOGI(TAG,"JK: volt=%i, curr=%i, soc=%i",can_batVolt,can_batCurr,can_soc);
+        //BSC_LOGI(TAG,"JK: volt=%i, curr=%i, soc=%i",can_batVolt,can_batCurr,can_soc);
       }
       else if(canMessage.identifier==0x04F4) //1268; Cell voltage
       {
@@ -213,45 +209,46 @@ namespace nsCanbus
       {
           setBmsLastDataMillis(u8_jkCanBms,millis());
       }
-      }
-
-  }
-  }
-
-
-
-
-  // Transmit hostname
-  void Canbus::sendCanMsg_hostname_35e_370_371()
-  {
-    static char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
-    static char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
-
-    switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
-    {
-      case ID_CAN_DEVICE_DEYE:
-      case ID_CAN_DEVICE_SOLISRHI:
-        sendCanMsg(0x35e, (uint8_t *)&hostname_pylon, 6);
-        break;
-
-      case ID_CAN_DEVICE_VICTRON:
-        sendCanMsg(0x370, (uint8_t *)&hostname_general, 8);
-        sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
-        sendCanMsg(0x35e, (uint8_t *)&hostname_general, 6);
-        break;
     }
   }
+}
 
-  /*
-  * Data 0 + 1:
-  * CVL: Battery Charge Voltage (data type : 16bit unsigned int, byte order : little endian, scale factor : 0.1, unit : V)
-  * Data 2 + 3:
-  * CCL: DC Charge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
-  * Data 4 + 5:
-  * DCL: DC Discharge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
-  */
-  void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(Inverter::inverterData_s &inverterData)
+
+
+
+// Transmit hostname
+void Canbus::sendCanMsg_hostname_35e_370_371()
+{
+  switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
   {
+    case ID_CAN_DEVICE_DEYE:
+    case ID_CAN_DEVICE_SOLISRHI:
+    {
+      constexpr std::array<uint8_t, 8> hostname_pylon {'P','Y','L','O','N',' '};
+      sendCanMsg(0x35e, hostname_pylon.data(), hostname_pylon.size());
+    } break;
+
+    case ID_CAN_DEVICE_VICTRON:
+    {
+      constexpr std::array<uint8_t, 8> hostname_general_1 {'B','S','C',' ',' ',' ',' ',' '}; // Battery / BMS name part 1 && Manufacturer name
+      constexpr std::array<uint8_t, 8> hostname_general_2 {' ',' ',' ',' ',' ',' ',' ',' '}; // Battery / BMS name part 2
+      sendCanMsg(0x370, hostname_general_1.data(), hostname_general_1.size());
+      sendCanMsg(0x371, hostname_general_2.data(), hostname_general_2.size());
+      sendCanMsg(0x35e, hostname_general_1.data(), hostname_general_1.size()); // Note: BMS-Can specification expects 6 chars here as well.
+    } break;
+  }
+}
+
+/*
+* Data 0 + 1:
+* CVL: Battery Charge Voltage (data type : 16bit unsigned int, byte order : little endian, scale factor : 0.1, unit : V)
+* Data 2 + 3:
+* CCL: DC Charge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
+* Data 4 + 5:
+* DCL: DC Discharge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
+*/
+void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(inverters::InverterData &inverterData)
+{
   data351 msgData;
 
   msgData.dischargevoltage    = 0; //not use
@@ -266,42 +263,42 @@ namespace nsCanbus
   msgData.maxDischargeCurrent = inverterData.inverterDischargeCurrent*10;
 
   sendCanMsg(0x351, (uint8_t *)&msgData, sizeof(msgData));
-  }
+}
 
 
-  /* SOC
-  * Data 0 + 1:
-  * SOC Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
-  * Data 2 + 3:
-  * SOH Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
-  */
-  void Canbus::sendCanMsg_soc_soh_355(Inverter::inverterData_s &inverterData)
-  {
+/* SOC
+* Data 0 + 1:
+* SOC Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
+* Data 2 + 3:
+* SOH Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
+*/
+void Canbus::sendCanMsg_soc_soh_355(inverters::InverterData &inverterData)
+{
   data355 msgData;
 
   msgData.soc = inverterData.inverterSoc;
 
   msgData.soh = 100; // SOH, uint16 1 %
   sendCanMsg(0x355, (uint8_t *)&msgData, sizeof(data355));
-  }
+}
 
 
-  /* Battery voltage
-  * Data 0 + 1:
-  * Battery Voltage (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.01, unit : V)
-  * Data 2 + 3:
-  * Battery Current (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
-  * Data 4 + 5:
-  * Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC)
-  */
-  void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(Inverter::inverterData_s &inverterData)
-  {
+/* Battery voltage
+* Data 0 + 1:
+* Battery Voltage (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.01, unit : V)
+* Data 2 + 3:
+* Battery Current (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
+* Data 4 + 5:
+* Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC)
+*/
+void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(inverters::InverterData &inverterData)
+{
   data356 msgData;
 
   msgData.voltage = inverterData.batteryVoltage; //*100
   msgData.current = inverterData.batteryCurrent; //*10;
 
-  nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+  InverterBattery inverterBattery;
   msgData.temperature = inverterBattery.getBatteryTemp(inverterData)*10; //Temperatur
 
   #ifdef CAN_DEBUG
@@ -309,12 +306,12 @@ namespace nsCanbus
   #endif
 
   sendCanMsg(0x356, (uint8_t *)&msgData, sizeof(data356));
-  }
+}
 
 
-  // Send alarm details
-  void Canbus::sendCanMsg_Alarm_359(Inverter::inverterData_s &inverterData)
-  {
+// Send alarm details
+void Canbus::sendCanMsg_Alarm_359(inverters::InverterData &inverterData)
+{
   data35a msgData;
   uint8_t u8_lValue=0;
 
@@ -435,21 +432,21 @@ namespace nsCanbus
   msgData.u8_b7=0;
 
   sendCanMsg(0x359, (uint8_t *)&msgData, sizeof(data35a));
-  }
+}
 
 
-  // Send alarm details
-  void Canbus::sendCanMsg_Alarm_35a(Inverter::inverterData_s &inverterData)
-  {
-  const uint8_t BB0_ALARM = B00000001;
-  const uint8_t BB1_ALARM = B00000100;
-  const uint8_t BB2_ALARM = B00010000;
-  const uint8_t BB3_ALARM = B01000000;
+// Send alarm details
+void Canbus::sendCanMsg_Alarm_35a(inverters::InverterData &inverterData)
+{
+  constexpr uint8_t BB0_ALARM = B00000001;
+  constexpr uint8_t BB1_ALARM = B00000100;
+  constexpr uint8_t BB2_ALARM = B00010000;
+  constexpr uint8_t BB3_ALARM = B01000000;
 
-  const uint8_t BB0_OK = B00000010;
-  const uint8_t BB1_OK = B00001000;
-  const uint8_t BB2_OK = B00100000;
-  const uint8_t BB3_OK = B10000000;
+  constexpr uint8_t BB0_OK = B00000010;
+  constexpr uint8_t BB1_OK = B00001000;
+  constexpr uint8_t BB2_OK = B00100000;
+  constexpr uint8_t BB3_OK = B10000000;
 
   data35a msgData;
   msgData.u8_b0=0;
@@ -613,11 +610,11 @@ namespace nsCanbus
 
   //BSC_LOGI(TAG,"0x35a=%i,%i,%i,%i,%i,%i,%i,%i",msgData.u8_b0,msgData.u8_b1,msgData.u8_b2,msgData.u8_b3,msgData.u8_b4,msgData.u8_b5,msgData.u8_b6,msgData.u8_b7);
   sendCanMsg(0x35a, (uint8_t *)&msgData, sizeof(data35a));
-  }
+}
 
 
-  void Canbus::sendCanMsg_version_35f()
-  {
+void Canbus::sendCanMsg_version_35f()
+{
   struct data35f
   {
       uint16_t BatteryModel;
@@ -632,11 +629,11 @@ namespace nsCanbus
   msgData.Onlinecapacity = 0;
 
   sendCanMsg(0x35f, (uint8_t *)&msgData, sizeof(data35f));
-  }
+}
 
 
-  void Canbus::sendCanMsg_battery_modules_372(Inverter::inverterData_s &inverterData)
-  {
+void Canbus::sendCanMsg_battery_modules_372(inverters::InverterData &inverterData)
+{
   struct data372
   {
       uint16_t numberofmodulesok;
@@ -651,12 +648,12 @@ namespace nsCanbus
   msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
   //msgData.numberofmodulesoffline = 0;
 
-  sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
-  }
+sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
+}
 
 
-  void Canbus::sendCanMsg_min_max_values_373_376_377(Inverter::inverterData_s &inverterData)
-  {
+void Canbus::sendCanMsg_min_max_values_373_376_377(inverters::InverterData &inverterData)
+{
   data373 msgData;
 
   msgData.maxCellVoltage = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
@@ -677,38 +674,38 @@ namespace nsCanbus
 
   //sendCanMsg(0x376, (uint8_t *)&msgData, 8); //lowestExternalTemp
   //sendCanMsg(0x377, (uint8_t *)&msgData, 8); //highestExternalTemp
-  }
+}
 
 
-  // Min. Zellspannung
-  void Canbus::sendCanMsg_minCellVoltage_text_374(Inverter::inverterData_s &inverterData)
-  {
+// Min. Zellspannung
+void Canbus::sendCanMsg_minCellVoltage_text_374(inverters::InverterData &inverterData)
+{
   uint8_t BmsNr, CellNr;
   BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
 
   char buf[8];
   BmsDataUtils::buildBatteryCellText(buf,BmsNr,CellNr);
   sendCanMsg(0x374, (uint8_t *)&buf, 8);
-  }
+}
 
 
-  // Max. Zellspannung (Text)
-  void Canbus::sendCanMsg_maxCellVoltage_text_375(Inverter::inverterData_s &inverterData)
-  {
+// Max. Zellspannung (Text)
+void Canbus::sendCanMsg_maxCellVoltage_text_375(inverters::InverterData &inverterData)
+{
   uint8_t BmsNr, CellNr;
   BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
 
   char buf[8];
   BmsDataUtils::buildBatteryCellText(buf,BmsNr,CellNr);
   sendCanMsg(0x375, (uint8_t *)&buf, 8);
-  }
+}
 
 
 
 
 
-  void Canbus::sendExtendedCanMsgTemp()
-  {
+void Canbus::sendExtendedCanMsgTemp()
+{
   uint32_t u16_lCanId = 0x380;
 
   struct dataTemp
@@ -774,6 +771,6 @@ namespace nsCanbus
 
   u8_mCanSendDataBmsNumber++;
   if(u8_mCanSendDataBmsNumber==BMSDATA_NUMBER_ALLDEVICES)u8_mCanSendDataBmsNumber=0;
-  }
-
 }
+
+} // namespace inverters

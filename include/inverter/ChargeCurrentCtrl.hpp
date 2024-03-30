@@ -9,33 +9,32 @@
 #include "inverter/Inverter.hpp"
 
 
-namespace nsChargeCurrentCtrl {
-    class ChargeCurrentCtrl {
-    public:
-        ChargeCurrentCtrl();
-        ~ChargeCurrentCtrl();
+namespace inverters
+{
+class ChargeCurrentCtrl
+{
+  public:
+  void calcChargCurrent(Inverter &inverter, InverterData &inverterData, bool alarmSetChargeCurrentToZero);
 
-        void calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetChargeCurrentToZero);
+  #ifdef PIO_UNIT_TESTING
+  int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);
+  int16_t calcChargeCurrentCutOff(InverterData &inverterData, int16_t u16_lChargeCurrent);
 
-        #ifdef PIO_UNIT_TESTING
-        int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);
-        int16_t calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent);
+  int16_t calcLadestromZellspanung(InverterData &inverterData, int16_t i16_pMaxChargeCurrent);
+  int16_t calcLadestromBeiZelldrift(InverterData &inverterData, int16_t i16_pMaxChargeCurrent);
+  int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
+  int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
+  #endif
 
-        int16_t calcLadestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
-        int16_t calcLadestromBeiZelldrift(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
-        int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
-        int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
-        #endif
+  private:
+  #ifndef PIO_UNIT_TESTING
+  int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);
+  int16_t calcChargeCurrentCutOff(InverterData &inverterData, int16_t u16_lChargeCurrent);
 
-    private:
-        #ifndef PIO_UNIT_TESTING
-        int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);
-        int16_t calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent);
-
-        int16_t calcLadestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
-        int16_t calcLadestromBeiZelldrift(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
-        int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
-        int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
-        #endif
-    };
-}
+  int16_t calcLadestromZellspanung(InverterData &inverterData, int16_t i16_pMaxChargeCurrent);
+  int16_t calcLadestromBeiZelldrift(InverterData &inverterData, int16_t i16_pMaxChargeCurrent);
+  int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
+  int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
+  #endif
+};
+} // namespace inverters

@@ -9,17 +9,14 @@
 #include "inverter/Inverter.hpp"
 
 
-namespace nsChargeVoltageCtrl
+namespace inverters
 {
-    class ChargeVoltageCtrl
-    {
-    public:
-        ChargeVoltageCtrl();
-        ~ChargeVoltageCtrl();
+class ChargeVoltageCtrl
+{
+  public:
+  void calcChargeVoltage(Inverter &inverter, InverterData &inverterData);
 
-        void calcChargVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData);
-
-    private:
-        uint16_t calcDynamicReduzeChargeVolltage(Inverter::inverterData_s &inverterData, uint16_t u16_lChargeVoltage);
-    };
-}
+  private:
+  uint16_t calcDynamicReduzeChargeVolltage(InverterData &inverterData, uint16_t u16_lChargeVoltage);
+};
+} // namespace inverters

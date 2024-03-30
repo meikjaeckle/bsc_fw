@@ -92,7 +92,7 @@ const char JSON_BMS_BT_1[] PROGMEM ="\"bms_bt\":[%s]";
 const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
 
 
-void buildJsonRest(Inverter &inverter, WebServer * server)
+void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
 {
   if(server->args()>0)
   {
@@ -139,19 +139,19 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
     genJsonEntryArray(arrStart4, F("inverter"), "", str_htmlOut, true);
 
     inverter.inverterDataSemaphoreTake();
-    Inverter::inverterData_s *inverterData = inverter.getInverterData();
-    int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
-    int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
-    int16_t inverterCurrent = inverterData->batteryCurrent;
-    int16_t inverterVoltage = inverterData->batteryVoltage;
-    uint16_t inverterSoc = inverterData->inverterSoc;
+    const inverters::InverterData& inverterData = inverter.getInverterData();
+    int16_t inverterChargeCurrent = inverterData.inverterChargeCurrent;
+    int16_t inverterDischargeCurrent = inverterData.inverterDischargeCurrent;
+    int16_t inverterCurrent = inverterData.batteryCurrent;
+    int16_t inverterVoltage = inverterData.batteryVoltage;
+    uint16_t inverterSoc = inverterData.inverterSoc;
 
-    int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
-    int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;
-    int16_t calcChargeCurrentCelldrift = inverterData->calcChargeCurrentCelldrift;
-    int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
+    int16_t calcChargeCurrentCellVoltage = inverterData.calcChargeCurrentCellVoltage;
+    int16_t calcChargeCurrentSoc = inverterData.calcChargeCurrentSoc;
+    int16_t calcChargeCurrentCelldrift = inverterData.calcChargeCurrentCelldrift;
+    int16_t calcChargeCurrentCutOff = inverterData.calcChargeCurrentCutOff;
 
-    int16_t calcDischargeCurrentCellVoltage = inverterData->calcDischargeCurrentCellVoltage;
+    int16_t calcDischargeCurrentCellVoltage = inverterData.calcDischargeCurrentCellVoltage;
     inverter.inverterDataSemaphoreGive();
     genJsonEntryArray(entrySingle, F("current"), inverterCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("voltage"), inverterVoltage, str_htmlOut, false);

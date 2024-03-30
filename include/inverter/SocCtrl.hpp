@@ -7,19 +7,18 @@
 
 #include <cstdint>
 #include "inverter/Inverter.hpp"
+#include "inverter/InverterData.hpp"
 
 
-namespace nsSocCtrl {
-    class SocCtrl {
-    public:
-        SocCtrl();
-        ~SocCtrl();
+namespace inverters
+{
 
-        enum SM_SocZellspgStates {STATE_MINCELLSPG_SOC_WAIT_OF_MIN=0, STATE_MINCELLSPG_SOC_BELOW_MIN, STATE_MINCELLSPG_SOC_LOCKTIMER};
+class SocCtrl
+{
+  public:
+  void calcSoc(Inverter &inverter, InverterData &inverterData, bool alarmSetSocToFull);
 
-        void calcSoc(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetSocToFull);
-
-    private:
-        uint8_t getNewSocByMinCellVoltage(Inverter::inverterData_s &inverterData, uint8_t u8_lSoc);
-    };
-}
+  private:
+  uint8_t getNewSocByMinCellVoltage(InverterData &inverterData, uint8_t u8_lSoc);
+};
+} // namespace inverters

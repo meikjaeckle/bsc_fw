@@ -307,7 +307,7 @@ void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
 
 
 uint8_t u8_lGetMinutesOld;
-void logValues(Inverter &inverter)
+void logValues(inverters::Inverter &inverter)
 {
   uint8_t u8_lGetMinutes = getMinutes();
   if(u8_lGetMinutes==u8_lGetMinutesOld) return;
@@ -329,17 +329,17 @@ void logValues(Inverter &inverter)
 
 
   inverter.inverterDataSemaphoreTake();
-  Inverter::inverterData_s *inverterData = inverter.getInverterData();
-  int16_t inverterCurrent = inverterData->batteryCurrent;
-  int16_t inverterVoltage = inverterData->batteryVoltage;
-  uint16_t inverterSoc = inverterData->inverterSoc;
-  int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
-  int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
+  const inverters::InverterData& inverterData = inverter.getInverterData();
+  int16_t inverterCurrent = inverterData.batteryCurrent;
+  int16_t inverterVoltage = inverterData.batteryVoltage;
+  uint16_t inverterSoc = inverterData.inverterSoc;
+  int16_t inverterChargeCurrent = inverterData.inverterChargeCurrent;
+  int16_t inverterDischargeCurrent = inverterData.inverterDischargeCurrent;
 
-  int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
-  int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;
-  int16_t calcChargeCurrentCelldrift = inverterData->calcChargeCurrentCelldrift;
-  int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
+  int16_t calcChargeCurrentCellVoltage = inverterData.calcChargeCurrentCellVoltage;
+  int16_t calcChargeCurrentSoc = inverterData.calcChargeCurrentSoc;
+  int16_t calcChargeCurrentCelldrift = inverterData.calcChargeCurrentCelldrift;
+  int16_t calcChargeCurrentCutOff = inverterData.calcChargeCurrentCutOff;
   inverter.inverterDataSemaphoreGive();
 
   /*bmsDataSemaphoreTake();

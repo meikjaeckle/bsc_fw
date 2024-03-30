@@ -38,6 +38,7 @@
 
 #include "defines.h"
 #include "inverter/Inverter.hpp"
+#include "inverter/Canbus.hpp"
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "params.h"
@@ -72,7 +73,8 @@ static const char *TAG = "MAIN";
 WebServer server;
 BleHandler bleHandler;
 BscSerial bscSerial;   // Serial
-Inverter inverter;
+inverters::Canbus bmsCan;
+inverters::Inverter inverter(bmsCan);
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -735,7 +737,7 @@ void task_canbusTx(void *param)
 {
   BSC_LOGD(TAG, "-> 'task_canbusTx' runs on core %d", xPortGetCoreID());
 
-  inverter.inverterInit();
+  inverter.init();
 
   for (;;)
   {
@@ -783,7 +785,7 @@ void task_i2c(void *param)
       String ipAddr;
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
-      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16); // TODO MEJ data size not required for string, could result fault memory access!
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
@@ -909,7 +911,7 @@ void handle_paramBmsToInverter()
   webSettingsBmsToInverter.handleHtmlFormRequest(&server);
   if (server.hasArg("SAVE"))
   {
-    inverter.loadIverterSettings();
+    inverter.loadInverterSettings();
   }
 }
 

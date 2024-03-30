@@ -5,49 +5,73 @@
 
 
 #include "AlarmRules.h"
+#include "BleHandler.h"
 #include "dio.h"
 #include "Ow.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "FreqCountESP.h"
 #include "log.h"
+#include "WebSettings.h"
 #include "inverter/Inverter.hpp"
 #ifdef LILYGO_TCAN485
 #include <Adafruit_NeoPixel.h>
 #endif
 
-static const char *TAG = "ALARM";
+namespace // anonymous
+{
+
+constexpr const char *TAG = "ALARM";
+
+// TODO MEJ I would prefere enum class here,
+// but this needs further adaptions in AlarmRules.cpp
+enum AlarmCause
+{
+  ALARM_CAUSE_DI                        = 0,
+  ALARM_CAUSE_BMS_NO_DATA               = 1,
+  ALARM_CAUSE_BMS_CELL_VOLTAGE          = 2,
+  ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN     = 3,
+  ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX     = 4,
+  ALARM_CAUSE_TEMPERATUR                = 5,
+  ALARM_CAUSE_OW_SENSOR_ERR             = 6,
+  ALARM_CAUSE_CELL_VOLTAGE_PLAUSIBILITY = 7,
+  ALARM_CAUSE_SOC                       = 8,
+  ALARM_CAUSE_FAN                       = 9,
+  ALARM_VIRTUAL_TRIGGER                 = 10
+};
 
 TimerHandle_t timer_doOffPulse;
-static SemaphoreHandle_t doMutex = NULL;
-static SemaphoreHandle_t alarmSettingsChangeMutex = NULL;
+SemaphoreHandle_t doMutex = nullptr;
+SemaphoreHandle_t alarmSettingsChangeMutex = nullptr;
 
 
-bool bo_Alarm[CNT_ALARMS];
-bool bo_Alarm_old[CNT_ALARMS];
-uint16_t alarmCauseAktiv[CNT_ALARMS];
+bool bo_Alarm[CNT_ALARMS] {};
+bool bo_Alarm_old[CNT_ALARMS] {};
+uint16_t alarmCauseAktiv[CNT_ALARMS] {};
 
 #ifndef LILYGO_TCAN485
-uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
-uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
+uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT]  {};
+uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT] {};
 #else
 Adafruit_NeoPixel pixels(1, GPIO_NUM_4, NEO_GRB + NEO_KHZ800);
 #endif
 
-bool bo_alarmActivate[CNT_ALARMS]; //Merker ob ein Alarm in diesem 'run' gesetzt wurde
-bool bo_timerPulseOffIsRunning;
+bool bo_alarmActivate[CNT_ALARMS] {}; //Merker ob ein Alarm in diesem 'run' gesetzt wurde
+bool bo_timerPulseOffIsRunning {false};
 
-bool bo_mChangeAlarmSettings;
+bool bo_mChangeAlarmSettings {false};
 
-uint8_t u8_mDoByte;
-uint8_t u8_mTachoChannel;
+uint8_t u8_mDoByte {0};
+uint8_t u8_mTachoChannel {0};
 
-uint16_t vTrigger;
+uint16_t vTrigger {0};
 
 //Hysterese
-uint32_t u32_hystereseTotalVoltageMin=0;
-uint32_t u32_hystereseTotalVoltageMax=0;
-uint8_t u8_merkerHysterese_TriggerAtSoc=0;
+uint32_t u32_hystereseTotalVoltageMin  {0};
+uint32_t u32_hystereseTotalVoltageMax  {0};
+uint8_t u8_merkerHysterese_TriggerAtSoc{0};
+
+} // anonymous namespace
 
 #ifndef LILYGO_TCAN485
 void runDigitalAusgaenge();
@@ -61,7 +85,7 @@ void tachoSetMux(uint8_t channel);
 
 void rules_Bms();
 void rules_Temperatur();
-void rules_CanInverter(Inverter &inverter);
+void rules_CanInverter(inverters::Inverter &inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
@@ -69,11 +93,10 @@ bool temperatur_DifferenzUeberwachung(uint8_t);
 void temperatur_senorsErrors();
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
-void rules_soc(Inverter &inverter);
+void rules_soc(inverters::Inverter &inverter);
 void rules_vTrigger();
 
-
-void initAlarmRules(Inverter &inverter)
+void initAlarmRules(inverters::Inverter &inverter)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
@@ -167,7 +190,7 @@ uint16_t getAlarm()
   return u16_lAlm;
 }
 
-void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
+void setAlarm(uint8_t alarmNr, bool bo_lAlarm, AlarmCause cause)
 {
   if(alarmNr==0)return;
 
@@ -765,7 +788,7 @@ void rules_Temperatur()
 }
 
 
-void rules_CanInverter(Inverter &inverter)
+void rules_CanInverter(inverters::Inverter &inverter)
 {
   //Ladeleistung bei Alarm auf 0 Regeln
   if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) inverter.setChargeCurrentToZero(true);
@@ -957,13 +980,14 @@ void rules_PlausibilityCeck()
 
 
 //
-void rules_soc(Inverter &inverter)
+void rules_soc(inverters::Inverter &inverter)
 {
   inverter.inverterDataSemaphoreTake();
-  Inverter::inverterData_s *inverterData = inverter.getInverterData();
+  // TODO MEJ: semaphore makes no sense this way. Data may still be modified because we got the reference to the data.
+  const inverters::InverterData& inverterData = inverter.getInverterData();
   inverter.inverterDataSemaphoreGive();
 
-  if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
+  if(inverterData.noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
   {
     //BSC_LOGI(TAG,"No battery online");
     u8_merkerHysterese_TriggerAtSoc=0;
@@ -985,12 +1009,12 @@ void rules_soc(Inverter &inverter)
 
       if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
       {
-        if((inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData->inverterSoc>u8_lTriggerAtSoc_SocOff)
+        if((inverterData.inverterSoc>=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData.inverterSoc>u8_lTriggerAtSoc_SocOff)
         {
           bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
         }
-        else if(inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
+        else if(inverterData.inverterSoc<=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
         {
           bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
@@ -998,12 +1022,12 @@ void rules_soc(Inverter &inverter)
       }
       else if(u8_lTriggerAtSoc_SocOff>u8_lTriggerAtSoc_SocOn)
       {
-        if((inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData->inverterSoc<u8_lTriggerAtSoc_SocOff)
+        if((inverterData.inverterSoc<=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData.inverterSoc<u8_lTriggerAtSoc_SocOff)
         {
           bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
         }
-        else if(inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
+        else if(inverterData.inverterSoc>=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
         {
           bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen

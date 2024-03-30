@@ -6,9 +6,12 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include <Arduino.h>
+#include <cstdint>
 
+namespace inverters
+{
 class Inverter;
+}
 
 void debugInit();
 
@@ -17,7 +20,7 @@ void writeLogToFS();
 #endif
 void deleteLogfile();
 void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger);
-void logValues(Inverter &inverter);
+void logValues(inverters::Inverter &inverter);
 
 void fsLock();
 void fsUnlock();

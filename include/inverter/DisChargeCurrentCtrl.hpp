@@ -9,17 +9,14 @@
 #include "inverter/Inverter.hpp"
 
 
-namespace nsDisChargeCurrentCtrl
+namespace inverters
 {
-    class DisChargeCurrentCtrl
-    {
-    public:
-        DisChargeCurrentCtrl();
-        ~DisChargeCurrentCtrl();
+class DisChargeCurrentCtrl
+{
+  public:
+  void calcDisChargCurrent(Inverter &inverter, InverterData &inverterData, bool alarmSetDischargeCurrentToZero);
 
-        void calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero);
-
-    private:
-        int16_t calcEntladestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxDischargeCurrent);
-    };
-}
+  private:
+  int16_t calcEntladestromZellspanung(InverterData &inverterData, int16_t i16_pMaxDischargeCurrent);
+};
+} // namespace inverters

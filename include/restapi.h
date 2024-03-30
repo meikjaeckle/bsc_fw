@@ -9,10 +9,15 @@
 #include <Arduino.h>
 #include <WebServer.h>
 
+// TODO MEJ WebServer could be forward declared as well
+namespace inverters
+{
 class Inverter;
+}
 
+// TODO MEJ Pass WebServer by reference
 
-void buildJsonRest(Inverter &inverter, WebServer * server);
+void buildJsonRest(inverters::Inverter &inverter, WebServer * server);
 void handle_setParameter(WebServer * server);
 
 #endif

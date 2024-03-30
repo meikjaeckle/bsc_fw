@@ -9,19 +9,15 @@
 #include "inverter/Inverter.hpp"
 
 
-namespace nsInverterBattery
+namespace inverters
 {
-    class InverterBattery
-    {
-    public:
-        InverterBattery();
-        ~InverterBattery();
+class InverterBattery
+{
+  public:
+  void getBatteryVoltage(Inverter &inverter, InverterData &inverterData);
+  void getBatteryCurrent(Inverter &inverter, InverterData &inverterData);
+  int16_t getBatteryTemp(InverterData &inverterData);
 
-        void getBatteryVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData);
-        void getBatteryCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData);
-        int16_t getBatteryTemp(Inverter::inverterData_s &inverterData);
-
-    private:
-
-    };
-}
+  private:
+};
+} // namespace inverters

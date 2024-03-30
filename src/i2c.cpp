@@ -30,8 +30,8 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 
 
 void isI2CdeviceConn();
-void displaySendData_bms(Inverter &inverter);
-void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
+void displaySendData_bms(inverters::Inverter &inverter);
+void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
 void i2cInitExtSerial();
@@ -172,7 +172,7 @@ bool isSerialExtEnabled()
 }
 
 
-void i2cCyclicRun(Inverter &inverter)
+void i2cCyclicRun(inverters::Inverter &inverter)
 {
   if(u8_mMasterSlaveId==ID_I2C_MASTER)
   {
@@ -191,7 +191,7 @@ void i2cCyclicRun(Inverter &inverter)
 }
 
 
-void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
+void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
 {
   uint8_t   txBuf[104];
   txBuf[0]=data1;
@@ -217,9 +217,9 @@ void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data
 }
 
 
-void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, String data, uint8_t dataLen)
+void i2cSendData(inverters::Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, String data, uint8_t dataLen)
 {
-  i2cSendData(inverter, i2cAdr, data1, data2, data3, data.c_str(), dataLen);
+  i2cSendData(inverter, i2cAdr, data1, data2, data3, data.c_str(), dataLen); // TODO MEJ dataLen not required for strings, could result in faulty memory access!
 }
 
 
@@ -393,7 +393,7 @@ void i2cSendDataToMaster()
 /******************************************************
  * Display
  ******************************************************/
-void displaySendData_bms(Inverter &inverter)
+void displaySendData_bms(inverters::Inverter &inverter)
 {
   for(uint8_t i=0;i<BT_DEVICES_COUNT-2;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
   {
@@ -433,13 +433,12 @@ void displaySendData_bms(Inverter &inverter)
     i++;
   }
 
-  struct Inverter::inverterData_s *p_lInverterData;
-  p_lInverterData = inverter.getInverterData();
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->batteryVoltage, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->batteryCurrent, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &p_lInverterData->inverterSoc, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, &p_lInverterData->inverterChargeCurrent, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, &p_lInverterData->inverterDischargeCurrent, 2);
+  const inverters::InverterData& inverterData = inverter.getInverterData();
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &inverterData.batteryVoltage, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &inverterData.batteryCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &inverterData.inverterSoc, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, &inverterData.inverterChargeCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, &inverterData.inverterDischargeCurrent, 2);
 
   uint16_t u16_lBscAlarms = getAlarm();
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_ALARMS, 0, &u16_lBscAlarms, 2);

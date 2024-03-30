@@ -3,24 +3,17 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "inverter/SocCtrl.hpp"
-#include "inverter/BmsDataUtils.hpp"
 #include "defines.h"
+
 #include "WebSettings.h"
+#include "inverter/BmsDataUtils.hpp"
+#include "inverter/Inverter.hpp"
+#include "inverter/InverterData.hpp"
+#include "inverter/SocCtrl.hpp"
 
-namespace nsSocCtrl
+namespace inverters
 {
-  SocCtrl::SocCtrl()
-  {
-    ;
-  }
-
-  SocCtrl::~SocCtrl()
-  {
-    ;
-  }
-
-  void SocCtrl::calcSoc(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetSocToFull)
+  void SocCtrl::calcSoc(Inverter &inverter, inverters::InverterData &inverterData, bool alarmSetSocToFull)
   {
     uint16_t u16_lNewSoc=0;
 
@@ -87,7 +80,8 @@ namespace nsSocCtrl
         //Wenn Zellspannung unterschritten wird, dann SoC x an Inverter senden
         u16_lNewSoc = getNewSocByMinCellVoltage(inverterData, u16_lNewSoc);
       }
-      else inverterData.u8_mSocZellspannungState = STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
+      else
+        inverterData.socZellspannungState = STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
     }
 
     inverter.inverterDataSemaphoreTake();
@@ -102,21 +96,23 @@ namespace nsSocCtrl
   * Wenn die eingestellte mindest-Zellspannung unterschritten wird, dann kann ein belibiger SoC
   * an den Wechselrichter gesendet werden. Hiermit kann ein Nachladen erzwungen werden.
   * *******************************************************************************************/
-  uint8_t SocCtrl::getNewSocByMinCellVoltage(Inverter::inverterData_s &inverterData, uint8_t u8_lSoc)
+  uint8_t SocCtrl::getNewSocByMinCellVoltage(inverters::InverterData &inverterData, uint8_t u8_lSoc)
   {
     //Wenn Zellspannung unterschritten wird, dann SoC x% an Inverter senden
-    switch(inverterData.u8_mSocZellspannungState)
+    switch(inverterData.socZellspannungState)
     {
       //Warte bis Zellspannung kleiner Mindestspannung
-      case STATE_MINCELLSPG_SOC_WAIT_OF_MIN:
-        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG))
+      case SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN:
+      {
+        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)<=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG))
         {
-          inverterData.u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_BELOW_MIN;
+          inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_BELOW_MIN;
         }
-        break;
+      } break;
 
       //Spannung war kleiner als Mindestspannung
-      case STATE_MINCELLSPG_SOC_BELOW_MIN:
+      case SocZellspgStates::STATE_MINCELLSPG_SOC_BELOW_MIN:
+      {
         uint16_t u16_lZellspgChargeEnd;
         u16_lZellspgChargeEnd = WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END);
         //Wenn Parameter ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END 0 ist, dann Ladestartspannung nehmen
@@ -128,16 +124,19 @@ namespace nsSocCtrl
         if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) > u16_lZellspgChargeEnd)
         {
           inverterData.u16_mSocZellspannungSperrzeitTimer = WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME);
-          inverterData.u8_mSocZellspannungState = STATE_MINCELLSPG_SOC_LOCKTIMER;
+          inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_LOCKTIMER;
         }
-        u8_lSoc = WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC);
-        break;
+        u8_lSoc=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC);
+      } break;
 
       //Sperrzeit läuft, warte auf ablauf der Sperrezit
-      case STATE_MINCELLSPG_SOC_LOCKTIMER:
-        if(inverterData.u16_mSocZellspannungSperrzeitTimer == 0) inverterData.u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
-        else inverterData.u16_mSocZellspannungSperrzeitTimer--;
-        break;
+      case SocZellspgStates::STATE_MINCELLSPG_SOC_LOCKTIMER:
+      {
+        if(inverterData.u16_mSocZellspannungSperrzeitTimer == 0)
+          inverterData.u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
+        else
+          --inverterData.u16_mSocZellspannungSperrzeitTimer;
+      } break;
 
       //default:
       //  break;

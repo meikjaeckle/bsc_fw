@@ -8,22 +8,9 @@
 #include "defines.h"
 #include "WebSettings.h"
 
-namespace nsInverterBattery
+namespace inverters
 {
-  InverterBattery::InverterBattery()
-  {
-    ;
-  }
-
-  InverterBattery::~InverterBattery()
-  {
-    ;
-  }
-
-
-
-
-  void InverterBattery::getBatteryVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData)
+  void InverterBattery::getBatteryVoltage(Inverter &inverter, InverterData &inverterData)
   {
     if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
     {
@@ -53,7 +40,7 @@ namespace nsInverterBattery
   }
 
 
-  void InverterBattery::getBatteryCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData)
+  void InverterBattery::getBatteryCurrent(Inverter &inverter, InverterData &inverterData)
   {
     bool isOneBatteryPackOnline = false;
     int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.u8_bmsDatasource)*10.0f);
@@ -93,7 +80,7 @@ namespace nsInverterBattery
   }
 
 
-  int16_t InverterBattery::getBatteryTemp(Inverter::inverterData_s &inverterData)
+  int16_t InverterBattery::getBatteryTemp(InverterData &inverterData)
   {
     uint8_t u8_lBmsTempQuelle=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_QUELLE,0,DT_ID_PARAM_INVERTER_BATT_TEMP_QUELLE);
     uint8_t u8_lBmsTempSensorNr=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_SENSOR,0,DT_ID_PARAM_INVERTER_BATT_TEMP_SENSOR);
@@ -124,7 +111,4 @@ namespace nsInverterBattery
       return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0));  //Im Fehlerfall immer Sensor 0 des BMS nehmen
     }
   }
-
-
-
-}
+} // namespace inverters
