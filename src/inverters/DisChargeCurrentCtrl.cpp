@@ -3,35 +3,38 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+#include <algorithm>
+#include <array>
+
 #include "inverters/DisChargeCurrentCtrl.hpp"
-#include "inverters/BmsDataUtils.hpp"
+#include <bms/utils/BmsDataUtils.hpp>
 #include "defines.h"
 #include "WebSettings.h"
 
 namespace inverters
 {
 
-void DisChargeCurrentCtrl::calcDisChargCurrent(Inverter &inverter, inverters::InverterData &inverterData, bool alarmSetDischargeCurrentToZero)
+void DisChargeCurrentCtrl::calcDisChargCurrent(inverters::InverterData &inverterData, bool alarmSetDischargeCurrentToZero)
 {
-  int16_t i16_lMaxDischargeCurrentList[1] = {0};
-  int16_t i16_mNewDisChargeCurrent = 0;
+  std::array<int16_t, 1> maxDischargeCurrentList {};
+  int16_t newDisChargeCurrent {0};
 
   if(alarmSetDischargeCurrentToZero)
   {
-    i16_mNewDisChargeCurrent =0;
+    newDisChargeCurrent = 0;
   }
   else
   {
-    int16_t i16_lMaxDischargeCurrent = (int16_t)WebSettings::getInt(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT,0,DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
+    int16_t maxDischargeCurrent = (int16_t)WebSettings::getInt(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT,0,DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
     //u8_mModulesCntDischarge=1;
 
     //Maximalen Entladestrom aus den einzelnen Packs errechnen
-    if(inverterData.u16_bmsDatasourceAdd>0)
+    if(inverterData.bmsDatasourceAdd>0)
     {
-      int16_t i16_lMaxCurrent=0;
+      int16_t maxCurrent {0};
       for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
       {
-        if((inverterData.u8_bmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (inverterData.u16_bmsDatasourceAdd>>i)&0x01)
+        if((inverterData.bmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (inverterData.bmsDatasourceAdd>>i)&0x01)
         {
           #ifdef CAN_DEBUG
           BSC_LOGD(TAG,"MaxDischargeCurrent Pack: i=%i, bmsErr=%i, FETdisState=%i, time=%i",
@@ -41,36 +44,29 @@ void DisChargeCurrentCtrl::calcDisChargCurrent(Inverter &inverter, inverters::In
           if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<CAN_BMS_COMMUNICATION_TIMEOUT) &&
             getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
           {
-            i16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT);
+            maxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT);
             //u8_mModulesCntDischarge++;
           }
         }
       }
-      if(i16_lMaxCurrent<i16_lMaxDischargeCurrent) i16_lMaxDischargeCurrent=i16_lMaxCurrent;
+
+      maxDischargeCurrent = std::min(maxCurrent, maxDischargeCurrent);
     }
     #ifdef CAN_DEBUG
-    BSC_LOGI(TAG,"dischargeCurrent Pack:%i",i16_lMaxDischargeCurrent);
+    BSC_LOGI(TAG,"dischargeCurrent Pack:%i",maxDischargeCurrent);
     #endif
 
 
-    i16_lMaxDischargeCurrentList[0] = calcEntladestromZellspanung(inverterData, i16_lMaxDischargeCurrent);
+    maxDischargeCurrentList[0] = calcEntladestromZellspanung(inverterData, maxDischargeCurrent);
 
     //Bestimmt kleinsten Entladestrom aller Optionen
-    for(uint8_t i=0;i<sizeof(i16_lMaxDischargeCurrentList)/sizeof(i16_lMaxDischargeCurrentList[0]);i++)
-    {
-      if(i16_lMaxDischargeCurrentList[i] < i16_lMaxDischargeCurrent)
-      {
-        i16_lMaxDischargeCurrent = i16_lMaxDischargeCurrentList[i];
-      }
-    }
+    maxDischargeCurrent = *std::min_element(std::begin(maxDischargeCurrentList), std::end(maxDischargeCurrentList));
 
-    i16_mNewDisChargeCurrent = i16_lMaxDischargeCurrent;
+    newDisChargeCurrent = maxDischargeCurrent;
   }
 
-  inverter.inverterDataSemaphoreTake();
-  inverterData.inverterDischargeCurrent = i16_mNewDisChargeCurrent;
-  inverterData.calcDischargeCurrentCellVoltage = i16_lMaxDischargeCurrentList[0];
-  inverter.inverterDataSemaphoreGive();
+  inverterData.inverterDischargeCurrent = newDisChargeCurrent;
+  inverterData.dischargeCurrentCellVoltage = maxDischargeCurrentList[0];
 }
 
 
@@ -85,7 +81,7 @@ int16_t DisChargeCurrentCtrl::calcEntladestromZellspanung(inverters::InverterDat
   if(u16_lStartSpg>0) //wenn enabled
   {
     //Kleinste Zellspannung von den aktiven BMSen ermitteln
-    uint16_t u16_lAktuelleMinZellspg = BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+    uint16_t u16_lAktuelleMinZellspg = bms::utils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
 
     if(u16_lStartSpg>=u16_lAktuelleMinZellspg)
     {

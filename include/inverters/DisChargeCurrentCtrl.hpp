@@ -14,7 +14,7 @@ namespace inverters
 class DisChargeCurrentCtrl
 {
   public:
-  void calcDisChargCurrent(Inverter &inverter, InverterData &inverterData, bool alarmSetDischargeCurrentToZero);
+  void calcDisChargCurrent(InverterData &inverterData, bool alarmSetDischargeCurrentToZero);
 
   private:
   int16_t calcEntladestromZellspanung(InverterData &inverterData, int16_t i16_pMaxDischargeCurrent);

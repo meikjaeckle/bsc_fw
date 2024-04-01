@@ -14,7 +14,7 @@ namespace inverters
 class ChargeCurrentCtrl
 {
   public:
-  void calcChargCurrent(Inverter &inverter, InverterData &inverterData, bool alarmSetChargeCurrentToZero);
+  void calcChargCurrent(InverterData &inverterData, bool alarmSetChargeCurrentToZero);
 
   #ifdef PIO_UNIT_TESTING
   int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);

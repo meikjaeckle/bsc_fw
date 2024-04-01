@@ -4,48 +4,44 @@
 // https://opensource.org/licenses/MIT
 
 #include "inverters/InverterBattery.hpp"
-#include "inverters/BmsDataUtils.hpp"
+#include <bms/utils/BmsDataUtils.hpp>
 #include "defines.h"
 #include "WebSettings.h"
 
 namespace inverters
 {
-  void InverterBattery::getBatteryVoltage(Inverter &inverter, InverterData &inverterData)
+  void InverterBattery::getBatteryVoltage(InverterData& inverterData)
   {
-    if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+    int16_t newBatteryVoltage {0};
+    if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
     {
-      inverter.inverterDataSemaphoreTake();
-      inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(inverterData.u8_bmsDatasource)*100.0f);
-      inverter.inverterDataSemaphoreGive();
-      return;
+      newBatteryVoltage = (int16_t)(getBmsTotalVoltage(inverterData.bmsDatasource)*100.0f);
     }
     else //Wenn Masterquelle offline, dann nächstes BMS nehmen das online ist
     {
       for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
       {
+        // TODO MEJ Add method to BmsData to get next active BMS
         //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-        if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
+        if(((inverterData.bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
         {
-          inverter.inverterDataSemaphoreTake();
-          inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100.0f);
-          inverter.inverterDataSemaphoreGive();
-          return;
+          newBatteryVoltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100.0f);
+          break; // active BMS found
         }
       }
     }
 
-    inverter.inverterDataSemaphoreTake();
-    inverterData.batteryVoltage = 0;
-    inverter.inverterDataSemaphoreGive();
+    _batteryVoltage = newBatteryVoltage;
+    inverterData.batteryVoltage = newBatteryVoltage; // TODO MEJ move out of this class
   }
 
 
-  void InverterBattery::getBatteryCurrent(Inverter &inverter, InverterData &inverterData)
+  void InverterBattery::getBatteryCurrent(InverterData &inverterData)
   {
     bool isOneBatteryPackOnline = false;
-    int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.u8_bmsDatasource)*10.0f);
+    int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.bmsDatasource)*10.0f);
 
-    if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
+    if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
     #ifdef CAN_DEBUG
     BSC_LOGI(TAG,"Battery current: u8_mBmsDatasource=%i, cur=%i, u8_mBmsDatasourceAdd=%i",u8_mBmsDatasource, msgData.current, u8_mBmsDatasourceAdd);
     #endif
@@ -57,7 +53,7 @@ namespace inverters
       long lTime = getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i);
       #endif
       //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-      if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
+      if(((inverterData.bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
       {
         isOneBatteryPackOnline=true;
         u16_lBatteryCurrent += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10.0f);
@@ -73,14 +69,12 @@ namespace inverters
       #endif
     }
 
-    inverter.inverterDataSemaphoreTake();
-    inverterData.noBatteryPackOnline = !isOneBatteryPackOnline;
+    inverterData.noBatteryPackOnline = isOneBatteryPackOnline; // TODO MEJ BUG: inverted logic
     inverterData.batteryCurrent = u16_lBatteryCurrent;
-    inverter.inverterDataSemaphoreGive();
   }
 
 
-  int16_t InverterBattery::getBatteryTemp(InverterData &inverterData)
+  int16_t InverterBattery::getBatteryTemp(const InverterData &inverterData)
   {
     uint8_t u8_lBmsTempQuelle=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_QUELLE,0,DT_ID_PARAM_INVERTER_BATT_TEMP_QUELLE);
     uint8_t u8_lBmsTempSensorNr=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_SENSOR,0,DT_ID_PARAM_INVERTER_BATT_TEMP_SENSOR);
@@ -88,11 +82,11 @@ namespace inverters
     {
       if(u8_lBmsTempSensorNr<3)
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,u8_lBmsTempSensorNr));
+        return (int16_t)(getBmsTempature(inverterData.bmsDatasource,u8_lBmsTempSensorNr));
       }
       else
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
+        return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
       }
     }
     else if(u8_lBmsTempQuelle==2)
@@ -103,12 +97,12 @@ namespace inverters
       }
       else
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
+        return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
       }
     }
     else
     {
-      return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0));  //Im Fehlerfall immer Sensor 0 des BMS nehmen
+      return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0));  //Im Fehlerfall immer Sensor 0 des BMS nehmen
     }
   }
 } // namespace inverters

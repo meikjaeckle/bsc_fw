@@ -11,11 +11,11 @@
 
 namespace inverters
 {
-class Inverter;
+class IInverterControl;
 }
 
-void initAlarmRules(inverters::Inverter &inverter);
-void runAlarmRules(inverters::Inverter &inverter);
+void initAlarmRules(inverters::IInverterControl& /* inverter */);
+void runAlarmRules(inverters::IInverterControl& inverter);
 void changeAlarmSettings();
 
 bool getAlarm(uint8_t alarmNr);

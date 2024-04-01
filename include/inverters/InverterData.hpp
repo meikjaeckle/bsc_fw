@@ -7,17 +7,16 @@
 #define HEADER_8747956FAC7243B89F4FE9343AF840A0
 
 #include <cstdint>
+#include <inverters/InverterTypes.hpp>
 
 namespace inverters
 {
 
-enum class SocZellspgStates {STATE_MINCELLSPG_SOC_WAIT_OF_MIN=0, STATE_MINCELLSPG_SOC_BELOW_MIN, STATE_MINCELLSPG_SOC_LOCKTIMER};
-
 struct InverterData
 {
   // Ausgewählte BMS Quellen
-  uint8_t u8_bmsDatasource            {};
-  uint16_t u16_bmsDatasourceAdd       {};
+  uint8_t bmsDatasource            {};
+  uint16_t bmsDatasourceAdd       {};
 
   // Wechselrichterdaten
   bool       noBatteryPackOnline      {true};
@@ -30,20 +29,20 @@ struct InverterData
   int16_t    inverterDischargeCurrent {};
 
   // Ströme von der Ladestromregelung
-  int16_t calcChargeCurrentCellVoltage{};
-  int16_t calcChargeCurrentSoc        {};
-  int16_t calcChargeCurrentCelldrift  {};
-  int16_t calcChargeCurrentCutOff     {};
+  int16_t chargeCurrentCellVoltage{};
+  int16_t chargeCurrentSoc        {};
+  int16_t chargeCurrentCelldrift  {};
+  int16_t chargeCurrentCutOff     {};
 
   // Entladeströme von der Regelung
-  int16_t calcDischargeCurrentCellVoltage{};
+  int16_t dischargeCurrentCellVoltage{};
 
   // Charge current cut off
-  uint16_t u16_mChargeCurrentCutOfTimer{};
+  uint16_t chargeCurrentCutOffTimer{};
 
   // Wenn Zellspannung kleiner x mV wird SoC auf x% setzen
   SocZellspgStates socZellspannungState {SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN};
-  uint16_t u16_mSocZellspannungSperrzeitTimer{};
+  uint16_t socZellspannungSperrzeitTimer{};
 };
 
 } // namespace inverters

@@ -16,7 +16,7 @@ namespace inverters
 class SocCtrl
 {
   public:
-  void calcSoc(Inverter &inverter, InverterData &inverterData, bool alarmSetSocToFull);
+  void calcSoc(InverterData &inverterData, bool alarmSetSocToFull);
 
   private:
   uint8_t getNewSocByMinCellVoltage(InverterData &inverterData, uint8_t u8_lSoc);

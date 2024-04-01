@@ -13,7 +13,8 @@
 #include "FreqCountESP.h"
 #include "log.h"
 #include "WebSettings.h"
-#include "inverters/Inverter.hpp"
+#include <inverters/IDataReadAdapter.hpp>
+#include <inverters/IInverterControl.hpp>
 #ifdef LILYGO_TCAN485
 #include <Adafruit_NeoPixel.h>
 #endif
@@ -85,7 +86,7 @@ void tachoSetMux(uint8_t channel);
 
 void rules_Bms();
 void rules_Temperatur();
-void rules_CanInverter(inverters::Inverter &inverter);
+void rules_CanInverter(inverters::IInverterControl& inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
@@ -93,10 +94,10 @@ bool temperatur_DifferenzUeberwachung(uint8_t);
 void temperatur_senorsErrors();
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
-void rules_soc(inverters::Inverter &inverter);
+void rules_soc(const inverters::IDataReadAdapter& dataAdapter);
 void rules_vTrigger();
 
-void initAlarmRules(inverters::Inverter &inverter)
+void initAlarmRules(inverters::IInverterControl& /* inverter */)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
@@ -249,7 +250,7 @@ bool setVirtualTrigger(uint8_t triggerNr, bool val)
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
-void runAlarmRules(inverters::Inverter &inverter)
+void runAlarmRules(inverters::IInverterControl& inverter)
 {
   uint8_t i;
   bool bo_lChangeAlarmSettings=false;
@@ -295,7 +296,7 @@ void runAlarmRules(inverters::Inverter &inverter)
   #endif
 
   //Rules Soc
-  rules_soc(inverter);
+  rules_soc(inverter.getDataReadAdapter());
 
   //Virtual Trigger
   rules_vTrigger();
@@ -788,19 +789,25 @@ void rules_Temperatur()
 }
 
 
-void rules_CanInverter(inverters::Inverter &inverter)
+void rules_CanInverter(inverters::IInverterControl& inverter)
 {
   //Ladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) inverter.setChargeCurrentToZero(true);
-  else inverter.setChargeCurrentToZero(false);
+  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL))
+    inverter.setChargeCurrentToZero(true);
+  else
+    inverter.setChargeCurrentToZero(false);
 
   //Entladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) inverter.setDischargeCurrentToZero(true);
-  else inverter.setDischargeCurrentToZero(false);
+  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL))
+    inverter.setDischargeCurrentToZero(true);
+  else
+    inverter.setDischargeCurrentToZero(false);
 
   //SOC bei Alarm auf 100 stellen
-  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) inverter.setSocToFull(true);
-  else inverter.setSocToFull(false);
+  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL))
+    inverter.setSocToFull(true);
+  else
+    inverter.setSocToFull(false);
 }
 
 uint16_t u16_mMerkerTemperaturTrigger=0;
@@ -980,57 +987,52 @@ void rules_PlausibilityCeck()
 
 
 //
-void rules_soc(inverters::Inverter &inverter)
+void rules_soc(const inverters::IDataReadAdapter& dataAdapter)
 {
-  inverter.inverterDataSemaphoreTake();
-  // TODO MEJ: semaphore makes no sense this way. Data may still be modified because we got the reference to the data.
-  const inverters::InverterData& inverterData = inverter.getInverterData();
-  inverter.inverterDataSemaphoreGive();
 
-  if(inverterData.noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
+  if(dataAdapter.isNoBatteryPackOnline()) //Wenn kein Batterypack online ist, dann zurück
   {
     //BSC_LOGI(TAG,"No battery online");
-    u8_merkerHysterese_TriggerAtSoc=0;
+    u8_merkerHysterese_TriggerAtSoc = 0;
     return;
   }
 
-  uint8_t u8_lTriggerAtSocTriggerNr=0;
-  uint8_t u8_lTriggerAtSoc_SocOn=0;
-  uint8_t u8_lTriggerAtSoc_SocOff=0;
-  for(uint8_t ruleNr=0;ruleNr<ANZAHL_RULES_TRIGGER_SOC;ruleNr++)
+  const auto inverterSoc = dataAdapter.getInverterSoc();
+
+  for(uint8_t ruleNr=0; ruleNr < ANZAHL_RULES_TRIGGER_SOC; ruleNr++)
   {
-    u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC);
-    //BSC_LOGI(TAG,"ruleNr=%i, trigger=%i",ruleNr,u8_lTriggerAtSocTriggerNr);
-    if(u8_lTriggerAtSocTriggerNr>0)
+    const uint8_t triggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC);
+    //BSC_LOGI(TAG,"ruleNr=%i, trigger=%i",ruleNr,triggerAtSocTriggerNr);
+    if(triggerAtSocTriggerNr > 0)
     {
-      u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
-      u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
+      const uint8_t u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
+      const uint8_t u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
       //BSC_LOGI(TAG,"ruleNr=%i, soc=%i, socOn=%i, socOff=%i, hyst=%i", ruleNr, inverterData->inverterSoc, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
 
-      if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
+      if(u8_lTriggerAtSoc_SocOn > u8_lTriggerAtSoc_SocOff)
       {
-        if((inverterData.inverterSoc>=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData.inverterSoc>u8_lTriggerAtSoc_SocOff)
+        if((inverterSoc >= u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterSoc > u8_lTriggerAtSoc_SocOff)
         {
           bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
-          setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+          setAlarm(triggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
         }
-        else if(inverterData.inverterSoc<=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
+        else if(inverterSoc <= u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
         {
           bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
-          setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+          setAlarm(triggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
         }
       }
-      else if(u8_lTriggerAtSoc_SocOff>u8_lTriggerAtSoc_SocOn)
+      else if(u8_lTriggerAtSoc_SocOff > u8_lTriggerAtSoc_SocOn)
       {
-        if((inverterData.inverterSoc<=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData.inverterSoc<u8_lTriggerAtSoc_SocOff)
+        if((inverterSoc <= u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterSoc < u8_lTriggerAtSoc_SocOff)
         {
           bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
-          setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+          setAlarm(triggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
         }
-        else if(inverterData.inverterSoc>=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
+        else if(inverterSoc >= u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
         {
           bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
-          setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+          setAlarm(triggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
         }
       }
       // else -> Error

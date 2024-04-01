@@ -3,7 +3,6 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "log.h"
 #include "defines.h"
 #include "SoftwareSerial.h"
 #include <FS.h>
@@ -17,7 +16,9 @@
 #include "bscTime.h"
 #include "BmsData.h"
 #include "WebSettings.h"
-#include "inverters/Inverter.hpp"
+#include <inverters/IDataReadAdapter.hpp>
+#include <inverters/InverterData.hpp>
+#include "log.h"
 
 static const char *TAG = "LOG";
 
@@ -306,16 +307,19 @@ void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
 }
 
 
-uint8_t u8_lGetMinutesOld;
-void logValues(inverters::Inverter &inverter)
+void logValues(const inverters::IDataReadAdapter& dataAdapter)
 {
-  uint8_t u8_lGetMinutes = getMinutes();
-  if(u8_lGetMinutes==u8_lGetMinutesOld) return;
-  u8_lGetMinutesOld=u8_lGetMinutes;
+  static uint8_t u8_lGetMinutesOld {0};
+
+  const uint8_t u8_lGetMinutes = getMinutes();
+  if(u8_lGetMinutes==u8_lGetMinutesOld)
+    return;
+
+  u8_lGetMinutesOld = u8_lGetMinutes;
 
   if(WebSettings::getInt(ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE,0,DT_ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE)==0) return;
 
-  uint32_t timeMinutes = getDayMinutes();
+  const uint32_t timeMinutes = getDayMinutes();
   //BSC_LOGI(TAG,"logValues: New Entry, time=%i, u8_lGetMinutes=%i, getMinutesOld=%i",timeMinutes, u8_lGetMinutes, u8_lGetMinutesOld);
 
   if(timeMinutes==0)
@@ -324,23 +328,8 @@ void logValues(inverters::Inverter &inverter)
     SPIFFS.remove("/values1");
     SPIFFS.rename("/values","/values1");
     spiffsValueLogFile = SPIFFS.open("/values", FILE_WRITE);
-    for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++) spiffsValueLogFile.write(0x0);
+    for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++) { spiffsValueLogFile.write(0x0); }
   }
-
-
-  inverter.inverterDataSemaphoreTake();
-  const inverters::InverterData& inverterData = inverter.getInverterData();
-  int16_t inverterCurrent = inverterData.batteryCurrent;
-  int16_t inverterVoltage = inverterData.batteryVoltage;
-  uint16_t inverterSoc = inverterData.inverterSoc;
-  int16_t inverterChargeCurrent = inverterData.inverterChargeCurrent;
-  int16_t inverterDischargeCurrent = inverterData.inverterDischargeCurrent;
-
-  int16_t calcChargeCurrentCellVoltage = inverterData.calcChargeCurrentCellVoltage;
-  int16_t calcChargeCurrentSoc = inverterData.calcChargeCurrentSoc;
-  int16_t calcChargeCurrentCelldrift = inverterData.calcChargeCurrentCelldrift;
-  int16_t calcChargeCurrentCutOff = inverterData.calcChargeCurrentCutOff;
-  inverter.inverterDataSemaphoreGive();
 
   /*bmsDataSemaphoreTake();
   bmsData_s *bmsData = getBmsData();
@@ -348,17 +337,29 @@ void logValues(inverters::Inverter &inverter)
   uint16_t bmsMinCellVoltage = bmsData->bmsMinCellVoltage;
   bmsDataSemaphoreGive();*/
 
+  auto LogToFile = [](auto value)
+  {
+    if constexpr (std::is_integral_v<decltype(value)>)
+      spiffsValueLogFile.write(reinterpret_cast<uint8_t*>(&value), sizeof(value));
+    else
+      static_assert(std::is_integral_v<decltype(value)>, "Type is not supported"); // Helper to catch if the given type is not supported
+  };
+
+  // Get a copy of the whole InverterData struct
+  const inverters::InverterData inverterData = std::move(dataAdapter.getInverterData());
+
   fsLock();
   spiffsValueLogFile.seek(timeMinutes*VALUE_LOG_DATASET_SIZE,SeekSet);
-  spiffsValueLogFile.write((uint8_t*)&inverterCurrent,2);
-  spiffsValueLogFile.write((uint8_t*)&inverterVoltage,2);
-  spiffsValueLogFile.write((uint8_t*)&inverterSoc,2);
-  spiffsValueLogFile.write((uint8_t*)&inverterChargeCurrent,2);
-  spiffsValueLogFile.write((uint8_t*)&inverterDischargeCurrent,2);
-  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentCellVoltage,2);
-  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentSoc,2);
-  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentCelldrift,2);
-  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentCutOff,2);
+  LogToFile(inverterData.batteryCurrent);
+  LogToFile(inverterData.batteryVoltage);
+  LogToFile(inverterData.inverterSoc);
+  LogToFile(inverterData.inverterChargeCurrent);
+  LogToFile(inverterData.inverterDischargeCurrent);
+  LogToFile(inverterData.chargeCurrentCellVoltage);
+  LogToFile(inverterData.chargeCurrentSoc);
+  LogToFile(inverterData.chargeCurrentCelldrift);
+  LogToFile(inverterData.chargeCurrentCutOff);
+
   spiffsValueLogFile.flush();
   fsUnlock();
 }

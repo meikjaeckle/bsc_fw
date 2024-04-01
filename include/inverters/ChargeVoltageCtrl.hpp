@@ -14,9 +14,9 @@ namespace inverters
 class ChargeVoltageCtrl
 {
   public:
-  void calcChargeVoltage(Inverter &inverter, InverterData &inverterData);
+  void calcChargeVoltage(InverterData &inverterData);
 
   private:
-  uint16_t calcDynamicReduzeChargeVolltage(InverterData &inverterData, uint16_t u16_lChargeVoltage);
+  uint16_t calcDynamicReduceChargeVoltage(InverterData &inverterData, uint16_t u16_lChargeVoltage);
 };
 } // namespace inverters

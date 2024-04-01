@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "restapi.h"
-#include "inverters/Inverter.hpp"
+#include "inverters/InverterData.hpp"
+#include "inverters/IDataReadAdapter.hpp"
 #include "BmsData.h"
 #include "Ow.h"
 #include "Json.h"
@@ -12,7 +13,7 @@ static const char* TAG = "REST";
 
 enum genJsonTypes{arrStart,arrEnd,entrySingle,arrStart2,arrStart3,arrStart4,arrEnd2,entrySingle2};
 
-bool handleRestArgs(WebServer * server);
+bool handleRestArgs(WebServer& server);
 
 
 void genJsonEntrySingle(String key, String value, String &str_retStr)
@@ -92,22 +93,22 @@ const char JSON_BMS_BT_1[] PROGMEM ="\"bms_bt\":[%s]";
 const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
 
 
-void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
+void buildJsonRest(const inverters::IDataReadAdapter& dataAdapter, WebServer& server)
 {
-  if(server->args()>0)
+  if(server.args()>0)
   {
     handleRestArgs(server);
-    server->send(200, "application/json", F("{\"state\":1}"));
+    server.send(200, "application/json", F("{\"state\":1}"));
   }
   else
   {
-    String str_htmlOut="";
+    String str_htmlOut;
     uint8_t u8_val=0;
 
     uint8_t u8_nrOfCells=WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
 
-    server->setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server->send(200, "application/json", "");
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "application/json", "");
 
     //Start
     genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
@@ -122,8 +123,8 @@ void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
     genJsonEntryArray(entrySingle, F("name"), WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
-    str_htmlOut="";
+    server.sendContent(str_htmlOut);
+    str_htmlOut.clear();
 
     // Trigger
     genJsonEntryArray(arrStart4, F("trigger"), "", str_htmlOut, true);
@@ -138,38 +139,28 @@ void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
     // Inverter
     genJsonEntryArray(arrStart4, F("inverter"), "", str_htmlOut, true);
 
-    inverter.inverterDataSemaphoreTake();
-    const inverters::InverterData& inverterData = inverter.getInverterData();
-    int16_t inverterChargeCurrent = inverterData.inverterChargeCurrent;
-    int16_t inverterDischargeCurrent = inverterData.inverterDischargeCurrent;
-    int16_t inverterCurrent = inverterData.batteryCurrent;
-    int16_t inverterVoltage = inverterData.batteryVoltage;
-    uint16_t inverterSoc = inverterData.inverterSoc;
+    {
+      // Get a copy of the whole InverterData struct
+      const inverters::InverterData inverterData = std::move(dataAdapter.getInverterData());
 
-    int16_t calcChargeCurrentCellVoltage = inverterData.calcChargeCurrentCellVoltage;
-    int16_t calcChargeCurrentSoc = inverterData.calcChargeCurrentSoc;
-    int16_t calcChargeCurrentCelldrift = inverterData.calcChargeCurrentCelldrift;
-    int16_t calcChargeCurrentCutOff = inverterData.calcChargeCurrentCutOff;
+      genJsonEntryArray(entrySingle, F("current"),         inverterData.batteryCurrent,              str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("voltage"),         inverterData.batteryVoltage,              str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("soc"),             inverterData.inverterSoc,                 str_htmlOut, false);
 
-    int16_t calcDischargeCurrentCellVoltage = inverterData.calcDischargeCurrentCellVoltage;
-    inverter.inverterDataSemaphoreGive();
-    genJsonEntryArray(entrySingle, F("current"), inverterCurrent, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("voltage"), inverterVoltage, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("soc"), inverterSoc, str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("setpoint_cc"),     inverterData.inverterChargeCurrent,       str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("setpoint_dcc"),    inverterData.inverterDischargeCurrent,    str_htmlOut, false);
 
-    genJsonEntryArray(entrySingle, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("setpoint_dcc"), inverterDischargeCurrent, str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("cc_cellVoltage"),  inverterData.chargeCurrentCellVoltage,    str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("cc_soc"),          inverterData.chargeCurrentSoc,            str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("cc_cellDrift"),    inverterData.chargeCurrentCelldrift,      str_htmlOut, false);
+      genJsonEntryArray(entrySingle, F("cc_cutOff"),       inverterData.chargeCurrentCutOff,         str_htmlOut, false);
 
-    genJsonEntryArray(entrySingle, F("cc_cellVoltage"), calcChargeCurrentCellVoltage, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_soc"), calcChargeCurrentSoc, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_cellDrift"), calcChargeCurrentCelldrift, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, false);
-
-    genJsonEntryArray(entrySingle, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
+      genJsonEntryArray(entrySingle, F("dcc_cellVoltage"), inverterData.dischargeCurrentCellVoltage, str_htmlOut, true);
+    }
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
-    str_htmlOut="";
+    server.sendContent(str_htmlOut);
+    str_htmlOut.clear();
 
     // BMS Bluetooth
     genJsonEntryArray(arrStart, F("bms_bt"), "", str_htmlOut, false);
@@ -220,8 +211,8 @@ void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
       else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
     }
     genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
-    str_htmlOut="";
+    server.sendContent(str_htmlOut);
+    str_htmlOut.clear();
 
 
     // BMS serial
@@ -285,8 +276,8 @@ void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
       else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
     }
     genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
-    str_htmlOut="";
+    server.sendContent(str_htmlOut);
+    str_htmlOut.clear();
 
 
     // onewire Temperature
@@ -302,8 +293,8 @@ void buildJsonRest(inverters::Inverter &inverter, WebServer * server)
     //Ende
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
 
-    server->sendContent(str_htmlOut);
-    str_htmlOut="";
+    server.sendContent(str_htmlOut);
+    str_htmlOut.clear();
   }
 }
 
@@ -313,16 +304,16 @@ uint16_t u16_paramNr=0;
 uint8_t u8_groupNr=0;
 uint8_t u8_dt=0;
 #endif
-bool handleRestArgs(WebServer * server)
+bool handleRestArgs(WebServer& server)
 {
   WebSettings ws;
   bool ret=true;
   String argName, argValue;
 
-  for(uint8_t i=0;i<server->args();i++)
+  for(uint8_t i=0;i<server.args();i++)
   {
-    argName = server->argName(i);
-    argValue = server->arg(i);
+    argName = server.argName(i);
+    argValue = server.arg(i);
 
     BSC_LOGI(TAG,"%s=%s",argName.c_str(), argValue.c_str());
 
@@ -359,15 +350,15 @@ bool handleRestArgs(WebServer * server)
 
 
 /*
-void handle_setParameter(WebServer * server)
+void handle_setParameter(WebServer& server)
 {
-  if (server->hasArg("plain") == false) {
-    server->send(200, "application/json", F("{\"state\":0}"));
+  if (server.hasArg("plain") == false) {
+    server.send(200, "application/json", F("{\"state\":0}"));
     return;
   }
 
   Json json;
-  const char *jsonData = server->arg("plain").c_str();
+  const char *jsonData = server.arg("plain").c_str();
 
   uint16_t arrSize = json.getArraySize(jsonData, 0);
 
@@ -383,6 +374,6 @@ void handle_setParameter(WebServer * server)
 
 
 
-  server->send(200, "application/json", F("{\"state\":1}"));
+  server.send(200, "application/json", F("{\"state\":1}"));
 }
 */

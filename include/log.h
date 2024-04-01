@@ -10,7 +10,7 @@
 
 namespace inverters
 {
-class Inverter;
+class IDataReadAdapter;
 }
 
 void debugInit();
@@ -20,7 +20,7 @@ void writeLogToFS();
 #endif
 void deleteLogfile();
 void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger);
-void logValues(inverters::Inverter &inverter);
+void logValues(const inverters::IDataReadAdapter& dataAdapter);
 
 void fsLock();
 void fsUnlock();

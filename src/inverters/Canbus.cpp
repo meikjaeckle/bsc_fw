@@ -4,13 +4,15 @@
 // https://opensource.org/licenses/MIT
 
 #include <array>
-#include "inverters/Canbus.hpp"
-#include "inverters/InverterBattery.hpp"
-#include "inverters/BmsDataUtils.hpp"
 #include <ESP32TWAISingleton.hpp>
+
 #include "defines.h"
 #include "WebSettings.h"
 #include "BmsData.h"
+#include <inverters/InverterBattery.hpp>
+#include <bms/utils/BmsDataUtils.hpp>
+
+#include <inverters/Canbus.hpp>
 
 namespace inverters
 {
@@ -43,7 +45,7 @@ void Canbus::init()
 }
 
 
-void Canbus::sendBmsCanMessages(inverters::InverterData &inverterData)
+void Canbus::sendBmsCanMessages(const inverters::InverterData& inverterData)
 {
   switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
   {
@@ -123,11 +125,11 @@ void Canbus::sendCanMsg(uint32_t identifier, const uint8_t *buffer, uint8_t leng
   #endif
 
   vTaskDelay(pdMS_TO_TICKS(5));
-  }
+}
 
 
-void Canbus::readCanMessages(inverters::InverterData &inverterData)
-  {
+void Canbus::readCanMessages()
+{
   // JK-BMS CAN
   bool isJkCanBms=false;
   uint8_t u8_jkCanBms;
@@ -135,12 +137,12 @@ void Canbus::readCanMessages(inverters::InverterData &inverterData)
   {
       if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_JKBMS_CAN)
       {
-      isJkCanBms=true;
-      u8_jkCanBms=BMSDATA_FIRST_DEV_SERIAL+i;
-      //BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
+        isJkCanBms=true;
+        u8_jkCanBms=BMSDATA_FIRST_DEV_SERIAL+i;
+        //BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
 
-      setBmsLastDataMillis(u8_jkCanBms,millis()); //Nur zum Test
-      break;
+        setBmsLastDataMillis(u8_jkCanBms,millis()); //Nur zum Test
+        break;
       }
   }
 
@@ -247,7 +249,7 @@ void Canbus::sendCanMsg_hostname_35e_370_371()
 * Data 4 + 5:
 * DCL: DC Discharge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
 */
-void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(const inverters::InverterData& inverterData)
 {
   data351 msgData;
 
@@ -272,7 +274,7 @@ void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(inverters::InverterData &invert
 * Data 2 + 3:
 * SOH Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
 */
-void Canbus::sendCanMsg_soc_soh_355(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_soc_soh_355(const inverters::InverterData& inverterData)
 {
   data355 msgData;
 
@@ -291,7 +293,7 @@ void Canbus::sendCanMsg_soc_soh_355(inverters::InverterData &inverterData)
 * Data 4 + 5:
 * Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC)
 */
-void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(const inverters::InverterData& inverterData)
 {
   data356 msgData;
 
@@ -310,7 +312,7 @@ void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(inverters::InverterData
 
 
 // Send alarm details
-void Canbus::sendCanMsg_Alarm_359(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_Alarm_359(const inverters::InverterData& inverterData)
 {
   data35a msgData;
   uint8_t u8_lValue=0;
@@ -384,17 +386,17 @@ void Canbus::sendCanMsg_Alarm_359(inverters::InverterData &inverterData)
   Data 6: -
   */
 
-  uint32_t u32_bmsErrors = getBmsErrors(inverterData.u8_bmsDatasource);
+  uint32_t u32_bmsErrors = getBmsErrors(inverterData.bmsDatasource);
 
-  if(inverterData.u16_bmsDatasourceAdd>0)
+  if(inverterData.bmsDatasourceAdd>0)
   {
-      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-      {
-      if((inverterData.u16_bmsDatasourceAdd>>i)&0x01)
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((inverterData.bmsDatasourceAdd>>i)&0x01)
       {
           u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
       }
-      }
+    }
   }
 
   msgData.u8_b0=0;
@@ -436,7 +438,7 @@ void Canbus::sendCanMsg_Alarm_359(inverters::InverterData &inverterData)
 
 
 // Send alarm details
-void Canbus::sendCanMsg_Alarm_35a(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_Alarm_35a(const inverters::InverterData& inverterData)
 {
   constexpr uint8_t BB0_ALARM = B00000001;
   constexpr uint8_t BB1_ALARM = B00000100;
@@ -500,18 +502,18 @@ void Canbus::sendCanMsg_Alarm_35a(inverters::InverterData &inverterData)
   //msgData.u8_b3 |= BB2_ALARM; //n.b.
   //msgData.u8_b3 |= BB3_ALARM; //n.b.
 
-  uint32_t u32_bmsErrors = getBmsErrors(inverterData.u8_bmsDatasource);
+  uint32_t u32_bmsErrors = getBmsErrors(inverterData.bmsDatasource);
   //BSC_LOGI(TAG,"u8_mBmsDatasource=%i, u32_bmsErrors=%i",u8_mBmsDatasource,u32_bmsErrors);
 
-  if(inverterData.u16_bmsDatasourceAdd>0)
+  if(inverterData.bmsDatasourceAdd>0)
   {
-      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-      {
-      if((inverterData.u16_bmsDatasourceAdd>>i)&0x01)
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((inverterData.bmsDatasourceAdd>>i)&0x01)
       {
           u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
       }
-      }
+    }
   }
 
   // 0 (bit 0+1) n.b.
@@ -632,7 +634,7 @@ void Canbus::sendCanMsg_version_35f()
 }
 
 
-void Canbus::sendCanMsg_battery_modules_372(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_battery_modules_372(const inverters::InverterData& inverterData)
 {
   struct data372
   {
@@ -643,31 +645,31 @@ void Canbus::sendCanMsg_battery_modules_372(inverters::InverterData &inverterDat
   };
   data372 msgData;
 
-  msgData.numberofmodulesok = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
-  msgData.numberofmodulesblockingcharge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesCharge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
-  msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+  msgData.numberofmodulesok = bms::utils::getNumberOfBatteryModules(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
+  msgData.numberofmodulesblockingcharge = bms::utils::getNumberOfBatteryModules(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)-bms::utils::getNumberOfBatteryModulesCharge(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
+  msgData.numberofmodulesblockingdischarge = bms::utils::getNumberOfBatteryModules(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)-bms::utils::getNumberOfBatteryModulesDischarge(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
   //msgData.numberofmodulesoffline = 0;
 
 sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
 }
 
 
-void Canbus::sendCanMsg_min_max_values_373_376_377(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_min_max_values_373_376_377(const inverters::InverterData& inverterData)
 {
   data373 msgData;
 
-  msgData.maxCellVoltage = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
-  msgData.minCellColtage = BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+  msgData.maxCellVoltage = bms::utils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
+  msgData.minCellColtage = bms::utils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
 
-  if(getBmsTempature(inverterData.u8_bmsDatasource,1)>getBmsTempature(inverterData.u8_bmsDatasource,2))
+  if(getBmsTempature(inverterData.bmsDatasource,1)>getBmsTempature(inverterData.bmsDatasource,2))
   {
-      msgData.minCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,2);
-      msgData.maxCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,1);
+      msgData.minCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,2);
+      msgData.maxCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,1);
   }
   else
   {
-      msgData.minCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,1);
-      msgData.maxCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,2);
+      msgData.minCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,1);
+      msgData.maxCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,2);
   }
 
   sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
@@ -677,31 +679,29 @@ void Canbus::sendCanMsg_min_max_values_373_376_377(inverters::InverterData &inve
 }
 
 
-// Min. Zellspannung
-void Canbus::sendCanMsg_minCellVoltage_text_374(inverters::InverterData &inverterData)
+void Canbus::sendCanMsg_min_max_CellVoltage_text(const InverterData &inverterData, const BmsCanId bmsCanId)
 {
-  uint8_t BmsNr, CellNr;
-  BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
+  uint8_t bmsNr {}, cellNr {};
+  switch(bmsCanId)
+  {
+    case BmsCanId::MIN_CELL_VOLTAGE_TEXT:
+      (void)bms::utils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, bmsNr, cellNr);
+      break;
 
-  char buf[8];
-  BmsDataUtils::buildBatteryCellText(buf,BmsNr,CellNr);
-  sendCanMsg(0x374, (uint8_t *)&buf, 8);
+    case BmsCanId::MAX_CELL_VOLTAGE_TEXT:
+      (void)bms::utils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, bmsNr, cellNr);
+      break;
+
+    default:
+    {
+      assert(false && "Invalid CanId selected!");
+    } return;
+  }
+
+  std::array<char, 8> textBuffer {};
+  bms::utils::buildBatteryCellText(textBuffer, bmsNr, cellNr);
+  sendCanMsg(FromBmsCanId(bmsCanId), reinterpret_cast<uint8_t *>(textBuffer.data()), textBuffer.size()); // send always the full buffer (8 bytes)!
 }
-
-
-// Max. Zellspannung (Text)
-void Canbus::sendCanMsg_maxCellVoltage_text_375(inverters::InverterData &inverterData)
-{
-  uint8_t BmsNr, CellNr;
-  BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
-
-  char buf[8];
-  BmsDataUtils::buildBatteryCellText(buf,BmsNr,CellNr);
-  sendCanMsg(0x375, (uint8_t *)&buf, 8);
-}
-
-
-
 
 
 void Canbus::sendExtendedCanMsgTemp()

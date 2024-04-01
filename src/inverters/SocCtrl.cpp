@@ -6,14 +6,14 @@
 #include "defines.h"
 
 #include "WebSettings.h"
-#include "inverters/BmsDataUtils.hpp"
+#include <bms/utils/BmsDataUtils.hpp>
 #include "inverters/Inverter.hpp"
 #include "inverters/InverterData.hpp"
 #include "inverters/SocCtrl.hpp"
 
 namespace inverters
 {
-  void SocCtrl::calcSoc(Inverter &inverter, inverters::InverterData &inverterData, bool alarmSetSocToFull)
+  void SocCtrl::calcSoc(inverters::InverterData &inverterData, bool alarmSetSocToFull)
   {
     uint16_t u16_lNewSoc=0;
 
@@ -30,19 +30,19 @@ namespace inverters
       uint16_t u16_avgSoc = 0;
       u16_lNewSoc = 0;
 
-      if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+      if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
       {
-        u16_lNewSoc = u16_avgSoc = getBmsChargePercentage(inverterData.u8_bmsDatasource); // SOC, uint16 1 %
+        u16_lNewSoc = u16_avgSoc = getBmsChargePercentage(inverterData.bmsDatasource); // SOC, uint16 1 %
         u8_numberOfSocs++;
       }
 
       uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
-      if(inverterData.u16_bmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
+      if(inverterData.bmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
       {
         for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
         {
-          if(isBitSet(inverterData.u16_bmsDatasourceAdd,i))
+          if(isBitSet(inverterData.bmsDatasourceAdd,i))
           {
             if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
             {
@@ -84,10 +84,8 @@ namespace inverters
         inverterData.socZellspannungState = STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
     }
 
-    inverter.inverterDataSemaphoreTake();
     //inverterData.inverterChargeCurrent = i16_mNewChargeCurrent;
     inverterData.inverterSoc = u16_lNewSoc;
-    inverter.inverterDataSemaphoreGive();
   }
 
 
@@ -104,7 +102,7 @@ namespace inverters
       //Warte bis Zellspannung kleiner Mindestspannung
       case SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN:
       {
-        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)<=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG))
+        if(bms::utils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)<=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG))
         {
           inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_BELOW_MIN;
         }
@@ -121,9 +119,9 @@ namespace inverters
           u16_lZellspgChargeEnd=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG);
         }
 
-        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) > u16_lZellspgChargeEnd)
+        if(bms::utils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)>u16_lZellspgChargeEnd)
         {
-          inverterData.u16_mSocZellspannungSperrzeitTimer = WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME);
+          inverterData.socZellspannungSperrzeitTimer=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME);
           inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_LOCKTIMER;
         }
         u8_lSoc=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC);
@@ -132,10 +130,11 @@ namespace inverters
       //Sperrzeit läuft, warte auf ablauf der Sperrezit
       case SocZellspgStates::STATE_MINCELLSPG_SOC_LOCKTIMER:
       {
-        if(inverterData.u16_mSocZellspannungSperrzeitTimer == 0)
-          inverterData.u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
-        else
-          --inverterData.u16_mSocZellspannungSperrzeitTimer;
+        inverterData.socZellspannungSperrzeitTimer--; // TODO MEJ Check for overflow
+        if(inverterData.socZellspannungSperrzeitTimer==0)
+        {
+          inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
+        }
       } break;
 
       //default:
@@ -144,4 +143,4 @@ namespace inverters
 
     return u8_lSoc;
   }
-}
+} // namespace inverters

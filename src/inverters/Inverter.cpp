@@ -5,7 +5,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include "inverters/Inverter.hpp"
-#include "inverters/BmsDataUtils.hpp"
+#include <bms/utils/BmsDataUtils.hpp>
 #include "inverters/ChargeCurrentCtrl.hpp"
 #include "inverters/DisChargeCurrentCtrl.hpp"
 #include "inverters/ChargeVoltageCtrl.hpp"
@@ -38,6 +38,7 @@ Inverter::Inverter(Canbus& can) :
   _alarmSetSocToFull{false}
 {
   assert(_inverterDataMutex);
+  _dataReadAdapter.Update(_inverterData); // Initially copy the inverter data to the adapter, event if ther is no difference actually
 }
 
 Inverter::~Inverter()
@@ -52,7 +53,7 @@ void Inverter::init()
   _alarmSetDischargeCurrentToZero=false;
   _alarmSetSocToFull=false;
 
-  _inverterData.u16_mSocZellspannungSperrzeitTimer = 0;
+  _inverterData.socZellspannungSperrzeitTimer = 0;
   _inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
 
   loadInverterSettings();
@@ -73,6 +74,8 @@ void Inverter::inverterDataSemaphoreGive()
 
 void Inverter::loadInverterSettings()
 {
+  // TODO MEJ just add a flag to signal that settings shall be loaded on next iteration in cyclicRun.
+
   _inverterData.noBatteryPackOnline = true;
   const uint8_t u8_bmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   const uint8_t u8_lNumberOfSerial2BMSs = WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
@@ -99,8 +102,8 @@ void Inverter::loadInverterSettings()
   if(u8_bmsDatasource>=BT_DEVICES_COUNT)
     bitClear(u16_bmsDatasourceAdd,u8_bmsDatasource-BT_DEVICES_COUNT);
 
-  _inverterData.u8_bmsDatasource = u8_bmsDatasource;
-  _inverterData.u16_bmsDatasourceAdd = u16_bmsDatasourceAdd;
+  _inverterData.bmsDatasource = u8_bmsDatasource;
+  _inverterData.bmsDatasourceAdd = u16_bmsDatasourceAdd;
 
   BSC_LOGI(TAG,"loadIverterSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_bmsDatasource,bmsConnectFilter, u16_bmsDatasourceAdd);
 }
@@ -133,9 +136,10 @@ void Inverter::cyclicRun()
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_ENABLE,0))
   {
     _mMqttTxTimer++;
-    _bmsCan.readCanMessages(_inverterData);
+    _bmsCan.readCanMessages();
 
-    getInverterValues();
+    updateInverterValues();
+
     _bmsCan.sendBmsCanMessages(_inverterData);
 
     sendMqttMsg();
@@ -145,33 +149,36 @@ void Inverter::cyclicRun()
   }
   else
     _inverterData.noBatteryPackOnline = true;
+
+  // copy local _inverterData to read adapter,
+  // to make the inverter data public available through the IDataReadAdapter interface
+  _dataReadAdapter.Update(_inverterData);
 }
 
-
-void Inverter::getInverterValues()
+void Inverter::updateInverterValues()
 {
   // Ladespannung
   ChargeVoltageCtrl chargeVoltageCtrl;
-  chargeVoltageCtrl.calcChargeVoltage(*this, _inverterData);
+  chargeVoltageCtrl.calcChargeVoltage(_inverterData);
 
   // Ladestrom
   ChargeCurrentCtrl chargeCurrentCtl;
-  chargeCurrentCtl.calcChargCurrent(*this, _inverterData, _alarmSetChargeCurrentToZero);
+  chargeCurrentCtl.calcChargCurrent(_inverterData, _alarmSetChargeCurrentToZero);
 
   // Entladestrom
   DisChargeCurrentCtrl disChargeCurrentCtl;
-  disChargeCurrentCtl.calcDisChargCurrent(*this, _inverterData, _alarmSetDischargeCurrentToZero);
+  disChargeCurrentCtl.calcDisChargCurrent(_inverterData, _alarmSetDischargeCurrentToZero);
 
   // SoC
   SocCtrl socCtrl;
-  socCtrl.calcSoc(*this, _inverterData, _alarmSetSocToFull);
+  socCtrl.calcSoc(_inverterData, _alarmSetSocToFull);
 
   // Batteriespannung
   InverterBattery inverterBattery;
-  inverterBattery.getBatteryVoltage(*this, _inverterData);
+  inverterBattery.getBatteryVoltage(_inverterData);
 
   // Batteriestrom
-  inverterBattery.getBatteryCurrent(*this, _inverterData);
+  inverterBattery.getBatteryCurrent(_inverterData);
 }
 
 

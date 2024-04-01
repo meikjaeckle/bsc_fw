@@ -14,12 +14,13 @@ namespace inverters
 class InverterBattery
 {
   public:
-  void getBatteryVoltage(Inverter &inverter, InverterData &inverterData);
-  void getBatteryCurrent(Inverter &inverter, InverterData &inverterData);
-  int16_t getBatteryTemp(InverterData &inverterData);
+  void getBatteryVoltage(InverterData &inverterData);
+  void getBatteryCurrent(InverterData &inverterData);
+  int16_t getBatteryTemp(const InverterData& inverterData);
 
   private:
-  int16_t _batteryVoltage;
+  int16_t _batteryVoltage; // TODO MEJ
+  bool _isOneBatteryPackOnline;
 
 };
 } // namespace inverters

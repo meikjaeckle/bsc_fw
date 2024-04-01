@@ -3,21 +3,14 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "inverters/BmsDataUtils.hpp"
 #include "defines.h"
 #include "BmsData.h"
+#include <bms/utils/BmsDataUtils.hpp>
 
-BmsDataUtils::BmsDataUtils()
+namespace bms::utils
 {
-    // Konstruktor-Code
-}
 
-BmsDataUtils::~BmsDataUtils()
-{
-    // Dekonstruktor-Code
-}
-
-uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+uint8_t getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t u8_lModules=1;
 
@@ -34,7 +27,7 @@ uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint1
   return u8_lModules;
 }
 
-uint8_t BmsDataUtils::getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+uint8_t getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t u8_lModules=0;
   if(getBmsStateFETsCharge(u8_mBmsDatasource)) u8_lModules++;
@@ -55,7 +48,7 @@ uint8_t BmsDataUtils::getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource,
   return u8_lModules;
 }
 
-uint8_t BmsDataUtils::getNumberOfBatteryModulesDischarge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+uint8_t getNumberOfBatteryModulesDischarge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t u8_lModules=0;
   if(getBmsStateFETsDischarge(u8_mBmsDatasource)) u8_lModules++;
@@ -78,13 +71,13 @@ uint8_t BmsDataUtils::getNumberOfBatteryModulesDischarge(uint8_t u8_mBmsDatasour
 
 
 //Maximale Zellspannung von allen aktiven BMSen ermitteln
-uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+uint16_t getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t BmsNr, CellNr;
   return getMaxCellSpannungFromBms(u8_mBmsDatasource, u16_mBmsDatasourceAdd, BmsNr, CellNr);
 }
 
-uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr)
+uint16_t getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr)
 {
   uint8_t u8_lBmsNr=0;
   uint8_t u8_lCellNr=0;
@@ -131,13 +124,13 @@ uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint
 
 
 //Minimale Zellspannung von allen aktiven BMSen ermitteln
-uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+uint16_t getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t BmsNr, CellNr;
   return getMinCellSpannungFromBms(u8_mBmsDatasource, u16_mBmsDatasourceAdd, BmsNr, CellNr);
 }
 
-uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr)
+uint16_t getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr)
 {
   uint8_t u8_lBmsNr=0;
   uint8_t u8_lCellNr=0;
@@ -187,7 +180,7 @@ uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint
 
 
 //Maximale Cell-Difference von allen aktiven BMSen ermitteln
-uint16_t BmsDataUtils::getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+uint16_t getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t u8_lBmsNr=0; //nur zum Debug
   uint8_t u8_lCellNr=0;  //nur zum Debug
@@ -228,9 +221,12 @@ uint16_t BmsDataUtils::getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, ui
 }
 
 
-void BmsDataUtils::buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr)
+void buildBatteryCellText(std::array<char, 8>& buffer, uint8_t batteryNr, uint8_t cellNr)
 {
-  memset(buffer, 0, 8); // Clear
-  if(batteryNr<BMSDATA_FIRST_DEV_SERIAL) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);
-  else snprintf(buffer, 8, "S%d C%d", batteryNr-BMSDATA_FIRST_DEV_SERIAL, cellNr);
+  if (batteryNr < BMSDATA_FIRST_DEV_SERIAL)
+    snprintf(buffer.data(), buffer.size(), "B%d C%d", batteryNr, cellNr);
+  else
+    snprintf(buffer.data(), buffer.size(), "S%d C%d", batteryNr-BMSDATA_FIRST_DEV_SERIAL, cellNr);
 }
+
+} // namespace bms::utils

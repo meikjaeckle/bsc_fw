@@ -6,6 +6,9 @@
 #pragma once
 
 #include <cstdint>
+#include <inverters/DataReadAdapter.hpp>
+#include <inverters/IDataReadAdapter.hpp>
+#include <inverters/IInverterControl.hpp>
 #include <inverters/InverterData.hpp>
 #ifndef PIO_UNIT_TESTING
 #include "WebSettings.h"
@@ -25,36 +28,39 @@ namespace inverters
 
 class Canbus; // forward declaration
 
-class Inverter
+class Inverter :
+  public IInverterControl
 {
   public:
   Inverter(Canbus& can);
   ~Inverter();
 
+  public:
   void init();
   void loadInverterSettings();
   void cyclicRun();
 
+
+  // IInverterControl interface methods
+  public:
+  /** @returns the reference to the IDataReadAdapter */
+  inline const IDataReadAdapter& getDataReadAdapter() const override { return _dataReadAdapter; }
+  void setChargeCurrentToZero(bool val) override;
+  void setDischargeCurrentToZero(bool val) override;
+  void setSocToFull(bool val) override;
+
+  private:
   void inverterDataSemaphoreTake();
   void inverterDataSemaphoreGive();
-  inline const InverterData& getInverterData() const { return _inverterData; }
-  InverterData& getInverterData() { return _inverterData; }
-
-  void setChargeCurrentToZero(bool val);
-  void setDischargeCurrentToZero(bool val);
-  void setSocToFull(bool val);
-
-  uint16_t getAktualChargeCurrentSoll() const;
+  void updateInverterValues();
+  void sendMqttMsg(); // TODO MEJ I would move this method out of the inverter class. This just takes another dependency but mqtt is not the main task of the Inverter.
 
   private:
-  void getInverterValues();
-  void sendMqttMsg();
-
-  private:
-  mutable SemaphoreHandle_t _inverterDataMutex;
+  mutable SemaphoreHandle_t _inverterDataMutex; // TODO MEJ still required???
   Canbus& _bmsCan;
 
   InverterData _inverterData;
+  DataReadAdapter _dataReadAdapter;
   uint8_t _mMqttTxTimer;
   bool _alarmSetChargeCurrentToZero;
   bool _alarmSetDischargeCurrentToZero;

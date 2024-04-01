@@ -777,16 +777,15 @@ void task_i2c(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(2000));
-    i2cCyclicRun(inverter); //Sende Daten zum Display
+    i2cCyclicRun(inverter.getDataReadAdapter()); //Sende Daten zum Display
 
     if(changeWlanDataForI2C)
     {
       changeWlanDataForI2C=false;
-      String ipAddr;
-      if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
-      else ipAddr = WiFi.localIP().toString();
+      const String ipAddr {(WiFi.getMode()==WIFI_MODE_AP) ? "192.168.4.1" : WiFi.localIP().toString()};
+
       //i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16); // TODO MEJ data size not required for string, could result fault memory access!
-      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr); // TODO MEJ does the i2c receiver expect always chars, as set above ??
+      i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr); // TODO MEJ does the i2c receiver expect always 16 chars, as set above ??
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
@@ -1073,7 +1072,7 @@ void handle_getOwTempData()
 
 void handle_getBscLiveData()
 {
-  buildJsonRest(inverter, &server);
+  buildJsonRest(inverter.getDataReadAdapter(), server);
 }
 
 
@@ -1305,8 +1304,8 @@ void setup()
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
   server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
-  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, &server);});
-  //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
+  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter.getDataReadAdapter(), server);});
+  //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(server);});
 
   server.on("/settings/system/",handle_paramSystem);
   server.on("/settings/bms_can/",handle_paramBmsToInverter);
@@ -1417,7 +1416,7 @@ void loop()
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 
-  logValues(inverter);
+  logValues(inverter.getDataReadAdapter());
 
   #ifdef LOG_BMS_DATA
   if(millis()-debugLogTimer>=10000)
