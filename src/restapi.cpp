@@ -133,7 +133,7 @@ void buildJsonRest(const inverter::DataAdapter& dataAdapter, WebServer& server)
     genJsonEntryArray(entrySingle, String(9), getAlarm(9), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
 
     // Inverter

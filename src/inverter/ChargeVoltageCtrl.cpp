@@ -35,17 +35,17 @@ uint16_t ChargeVoltageCtrl::calcDynamicReduceChargeVoltage(inverter::InverterDat
       const uint16_t u16_lMaxCellDiffVoltage = bms::utils::getMaxCellDifferenceFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
       if(u16_lMaxCellDiffVoltage>u16_lDeltaCellVoltage)
       {
-        u16_lDynamicChargeVoltage-=1; //1=100mV
-        if(u16_lDynamicChargeVoltage<0) // TODO MEJ unsigned value can't get negative, may overflow
+        u16_lDynamicChargeVoltage -= 1; //1=100mV
+        if(u16_lDynamicChargeVoltage < 0) // TODO MEJ unsigned value can't get negative, may overflow
           u16_lDynamicChargeVoltage=0;
 
         return u16_lDynamicChargeVoltage;
       }
       else if(u16_lMaxCellDiffVoltage<u16_lDeltaCellVoltage)
       {
-        u16_lDynamicChargeVoltage+=1; //1=100mV
-        if(u16_lDynamicChargeVoltage>u16_lChargeVoltage)
-          u16_lDynamicChargeVoltage=u16_lChargeVoltage;
+        u16_lDynamicChargeVoltage += 1; //1=100mV
+        if(u16_lDynamicChargeVoltage > u16_lChargeVoltage)
+          u16_lDynamicChargeVoltage = u16_lChargeVoltage;
 
         return u16_lDynamicChargeVoltage;
       }

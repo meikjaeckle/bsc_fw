@@ -81,7 +81,7 @@ namespace inverter
         u16_lNewSoc = getNewSocByMinCellVoltage(inverterData, u16_lNewSoc);
       }
       else
-        inverterData.socZellspannungState = STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
+        inverterData.socZellspannungState = SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
     }
 
     //inverterData.inverterChargeCurrent = i16_mNewChargeCurrent;

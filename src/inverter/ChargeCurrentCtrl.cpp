@@ -191,12 +191,13 @@ int16_t ChargeCurrentCtrl::calcLadestromBeiZelldrift(inverter::InverterData &inv
     uint16_t u16_lstartDrift = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG);
     if(u32_lMaxCellDrift>0)
     {
-      if(u32_lMaxCellDrift>u16_lstartDrift) //Wenn Drift groß genug ist
+      if(u32_lMaxCellDrift > u16_lstartDrift) //Wenn Drift groß genug ist
       {
         if(bms::utils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE)) //Wenn höchste Zellspannung groß genug ist
         {
-          i16_lMaxChargeCurrent = i16_lMaxChargeCurrent-((u32_lMaxCellDrift-u16_lstartDrift)*WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV));
-          if(i16_lMaxChargeCurrent<0) i16_lMaxChargeCurrent=0;
+          i16_lMaxChargeCurrent = i16_lMaxChargeCurrent - ((u32_lMaxCellDrift-u16_lstartDrift) * WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV));
+          if(i16_lMaxChargeCurrent < 0)
+            i16_lMaxChargeCurrent = 0;
         }
       }
     }
@@ -272,12 +273,13 @@ int16_t ChargeCurrentCtrl::calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurre
  * Ladestrom auf 0 setzen, wenn längere Zeit mit einem geringen Ladestrom geladen wurde.
  *
  ********************************************************************************************/
-int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent)
+int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(inverter::InverterData &inverterData, int16_t u16_lChargeCurrent)
 {
-  float lTotalCurrent=0;
+  float lTotalCurrent {0};
 
   uint16_t u16_lCutOffTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME);
-  if(u16_lCutOffTime==0) return u16_lChargeCurrent;
+  if(u16_lCutOffTime==0)
+    return u16_lChargeCurrent;
 
   float fl_lCutOffCurrent = WebSettings::getFloat(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0);
   uint8_t u16_lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
@@ -289,32 +291,31 @@ int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(Inverter::inverterData_s &inv
   uint16_t u16_mChargeCurrentCutOfTimerOld = u16_mChargeCurrentCutOfTimer; //nur fürs Debug
   #endif
 
-  if(inverterData.u16_mChargeCurrentCutOfTimer>=u16_lCutOffTime)
+  if(inverterData.chargeCurrentCutOffTimer >= u16_lCutOffTime)
   {
     if(u8_lSoc < u16_lCutOffSoc) //Wenn SoC zur Freigabe wieder unterschritten
-    {
-      inverterData.u16_mChargeCurrentCutOfTimer=0;
-    }
-    else u16_lChargeCurrent=0;
+      inverterData.chargeCurrentCutOffTimer = 0;
+    else
+      u16_lChargeCurrent = 0;
   }
   else
   {
     //Timer hochzählen, wenn Strom kleiner
-    if(lTotalCurrent<fl_lCutOffCurrent && u8_lSoc>=u16_lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer++;
-    else inverterData.u16_mChargeCurrentCutOfTimer=0;
+    if(lTotalCurrent<fl_lCutOffCurrent && u8_lSoc>=u16_lCutOffSoc)
+      ++inverterData.chargeCurrentCutOffTimer;
+    else
+      inverterData.chargeCurrentCutOffTimer=0;
   }
 
   #ifdef CAN_DEBUG
-  if(u16_mChargeCurrentCutOfTimerOld!=u16_mChargeCurrentCutOfTimer)
+  if(u16_mChargeCurrentCutOfTimerOld != u16_mChargeCurrentCutOfTimer)
   {
     if(u16_mChargeCurrentCutOfTimer==0 || u16_mChargeCurrentCutOfTimer==1 || u16_mChargeCurrentCutOfTimer==u16_lCutOffTime)
-    BSC_LOGI(TAG,"calcChargeCurrentCutOff: u16_mChargeCurrentCutOfTimer=%i, u16_lChargeCurrent=%i", u16_mChargeCurrentCutOfTimer, u16_lChargeCurrent);
+      BSC_LOGI(TAG,"calcChargeCurrentCutOff: u16_mChargeCurrentCutOfTimer=%i, u16_lChargeCurrent=%i", u16_mChargeCurrentCutOfTimer, u16_lChargeCurrent);
   }
   #endif
 
   return u16_lChargeCurrent;
 }
 
-
-}
 } // namespace inverter

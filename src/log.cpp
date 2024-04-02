@@ -328,7 +328,10 @@ void logValues(const inverter::DataAdapter& dataAdapter)
     SPIFFS.remove("/values1");
     SPIFFS.rename("/values","/values1");
     spiffsValueLogFile = SPIFFS.open("/values", FILE_WRITE);
-    for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++) { spiffsValueLogFile.write(0x0); }
+    for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++)
+    { 
+      spiffsValueLogFile.write(0x0);
+    }
   }
 
   /*bmsDataSemaphoreTake();

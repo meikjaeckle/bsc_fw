@@ -71,7 +71,7 @@ namespace inverter
       #endif
     }
 
-    inverterData.noBatteryPackOnline = isOneBatteryPackOnline; // TODO MEJ BUG: inverted logic
+    inverterData.noBatteryPackOnline = !isOneBatteryPackOnline;
     inverterData.batteryCurrent = u16_lBatteryCurrent;
   }
 

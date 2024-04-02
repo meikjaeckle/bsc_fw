@@ -13,8 +13,8 @@
 #include "FreqCountESP.h"
 #include "log.h"
 #include "WebSettings.h"
-#include <inverter/IDataReadAdapter.hpp>
-#include <inverter/IInverterControl.hpp>
+#include <inverter/DataAdapter.hpp>
+#include <inverter/Inverter.hpp>
 #ifdef LILYGO_TCAN485
 #include <Adafruit_NeoPixel.h>
 #endif

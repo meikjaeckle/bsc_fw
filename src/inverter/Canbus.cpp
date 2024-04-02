@@ -442,15 +442,15 @@ void Canbus::sendCanMsg_Alarm_359(const inverter::InverterData& inverterData)
 // Send alarm details
 void Canbus::sendCanMsg_Alarm_35a(const inverter::InverterData& inverterData)
 {
-  constexpr uint8_t BB0_ALARM = B00000001;
-  constexpr uint8_t BB1_ALARM = B00000100;
-  constexpr uint8_t BB2_ALARM = B00010000;
-  constexpr uint8_t BB3_ALARM = B01000000;
+  constexpr uint8_t BB0_ALARM {B00000001};
+  constexpr uint8_t BB1_ALARM {B00000100};
+  constexpr uint8_t BB2_ALARM {B00010000};
+  constexpr uint8_t BB3_ALARM {B01000000};
 
-  constexpr uint8_t BB0_OK = B00000010;
-  constexpr uint8_t BB1_OK = B00001000;
-  constexpr uint8_t BB2_OK = B00100000;
-  constexpr uint8_t BB3_OK = B10000000;
+  constexpr uint8_t BB0_OK {B00000010};
+  constexpr uint8_t BB1_OK {B00001000};
+  constexpr uint8_t BB2_OK {B00100000};
+  constexpr uint8_t BB3_OK {B10000000};
 
   data35a msgData;
   msgData.u8_b0=0;
@@ -462,7 +462,7 @@ void Canbus::sendCanMsg_Alarm_35a(const inverter::InverterData& inverterData)
   msgData.u8_b6=0;
   msgData.u8_b7=0;
 
-  uint8_t u8_lValue=0;
+  uint8_t u8_lValue {0};
 
   /*bmsErrors
   #define BMS_ERR_STATUS_OK                0
