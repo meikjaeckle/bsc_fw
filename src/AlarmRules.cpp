@@ -13,8 +13,8 @@
 #include "FreqCountESP.h"
 #include "log.h"
 #include "WebSettings.h"
-#include <inverters/IDataReadAdapter.hpp>
-#include <inverters/IInverterControl.hpp>
+#include <inverter/IDataReadAdapter.hpp>
+#include <inverter/IInverterControl.hpp>
 #ifdef LILYGO_TCAN485
 #include <Adafruit_NeoPixel.h>
 #endif
@@ -86,7 +86,7 @@ void tachoSetMux(uint8_t channel);
 
 void rules_Bms();
 void rules_Temperatur();
-void rules_CanInverter(inverters::IInverterControl& inverter);
+void rules_CanInverter(inverter::Inverter& inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
@@ -94,10 +94,10 @@ bool temperatur_DifferenzUeberwachung(uint8_t);
 void temperatur_senorsErrors();
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
-void rules_soc(const inverters::IDataReadAdapter& dataAdapter);
+void rules_soc(const inverter::DataAdapter& dataAdapter);
 void rules_vTrigger();
 
-void initAlarmRules(inverters::IInverterControl& /* inverter */)
+void initAlarmRules(inverter::Inverter& /* inverter */)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
@@ -250,7 +250,7 @@ bool setVirtualTrigger(uint8_t triggerNr, bool val)
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
-void runAlarmRules(inverters::IInverterControl& inverter)
+void runAlarmRules(inverter::Inverter& inverter)
 {
   uint8_t i;
   bool bo_lChangeAlarmSettings=false;
@@ -296,7 +296,7 @@ void runAlarmRules(inverters::IInverterControl& inverter)
   #endif
 
   //Rules Soc
-  rules_soc(inverter.getDataReadAdapter());
+  rules_soc(inverter.getDataAdapter());
 
   //Virtual Trigger
   rules_vTrigger();
@@ -789,7 +789,7 @@ void rules_Temperatur()
 }
 
 
-void rules_CanInverter(inverters::IInverterControl& inverter)
+void rules_CanInverter(inverter::Inverter& inverter)
 {
   //Ladeleistung bei Alarm auf 0 Regeln
   if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL))
@@ -987,7 +987,7 @@ void rules_PlausibilityCeck()
 
 
 //
-void rules_soc(const inverters::IDataReadAdapter& dataAdapter)
+void rules_soc(const inverter::DataAdapter& dataAdapter)
 {
 
   if(dataAdapter.isNoBatteryPackOnline()) //Wenn kein Batterypack online ist, dann zurück

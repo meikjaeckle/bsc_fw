@@ -6,10 +6,10 @@
 #pragma once
 
 #include <cstdint>
-#include "inverters/Inverter.hpp"
+#include <inverter/InverterData.hpp>
 
 
-namespace inverters
+namespace inverter
 {
 class ChargeVoltageCtrl
 {
@@ -19,4 +19,4 @@ class ChargeVoltageCtrl
   private:
   uint16_t calcDynamicReduceChargeVoltage(InverterData &inverterData, uint16_t u16_lChargeVoltage);
 };
-} // namespace inverters
+} // namespace inverter

@@ -8,9 +8,9 @@
 
 #include <cstdint>
 
-namespace inverters
+namespace inverter
 {
-class IDataReadAdapter;
+class DataAdapter;
 }
 
 void debugInit();
@@ -20,7 +20,7 @@ void writeLogToFS();
 #endif
 void deleteLogfile();
 void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger);
-void logValues(const inverters::IDataReadAdapter& dataAdapter);
+void logValues(const inverter::DataAdapter& dataAdapter);
 
 void fsLock();
 void fsUnlock();

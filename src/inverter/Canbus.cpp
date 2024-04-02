@@ -7,14 +7,16 @@
 #include <ESP32TWAISingleton.hpp>
 
 #include "defines.h"
-#include "WebSettings.h"
+#include "AlarmRules.h"
 #include "BmsData.h"
-#include <inverters/InverterBattery.hpp>
+#include "Ow.h"
+#include "WebSettings.h"
+#include <inverter/InverterBattery.hpp>
 #include <bms/utils/BmsDataUtils.hpp>
 
-#include <inverters/Canbus.hpp>
+#include <inverter/Canbus.hpp>
 
-namespace inverters
+namespace inverter
 {
 namespace // anonymous
 {
@@ -45,7 +47,7 @@ void Canbus::init()
 }
 
 
-void Canbus::sendBmsCanMessages(const inverters::InverterData& inverterData)
+void Canbus::sendBmsCanMessages(const inverter::InverterData& inverterData)
 {
   switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
   {
@@ -249,7 +251,7 @@ void Canbus::sendCanMsg_hostname_35e_370_371()
 * Data 4 + 5:
 * DCL: DC Discharge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
 */
-void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(const inverter::InverterData& inverterData)
 {
   data351 msgData;
 
@@ -274,7 +276,7 @@ void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351(const inverters::InverterData& 
 * Data 2 + 3:
 * SOH Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
 */
-void Canbus::sendCanMsg_soc_soh_355(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_soc_soh_355(const inverter::InverterData& inverterData)
 {
   data355 msgData;
 
@@ -293,7 +295,7 @@ void Canbus::sendCanMsg_soc_soh_355(const inverters::InverterData& inverterData)
 * Data 4 + 5:
 * Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC)
 */
-void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(const inverter::InverterData& inverterData)
 {
   data356 msgData;
 
@@ -312,7 +314,7 @@ void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356(const inverters::Invert
 
 
 // Send alarm details
-void Canbus::sendCanMsg_Alarm_359(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_Alarm_359(const inverter::InverterData& inverterData)
 {
   data35a msgData;
   uint8_t u8_lValue=0;
@@ -438,7 +440,7 @@ void Canbus::sendCanMsg_Alarm_359(const inverters::InverterData& inverterData)
 
 
 // Send alarm details
-void Canbus::sendCanMsg_Alarm_35a(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_Alarm_35a(const inverter::InverterData& inverterData)
 {
   constexpr uint8_t BB0_ALARM = B00000001;
   constexpr uint8_t BB1_ALARM = B00000100;
@@ -634,7 +636,7 @@ void Canbus::sendCanMsg_version_35f()
 }
 
 
-void Canbus::sendCanMsg_battery_modules_372(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_battery_modules_372(const inverter::InverterData& inverterData)
 {
   struct data372
   {
@@ -654,7 +656,7 @@ sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
 }
 
 
-void Canbus::sendCanMsg_min_max_values_373_376_377(const inverters::InverterData& inverterData)
+void Canbus::sendCanMsg_min_max_values_373_376_377(const inverter::InverterData& inverterData)
 {
   data373 msgData;
 
@@ -773,4 +775,4 @@ void Canbus::sendExtendedCanMsgTemp()
   if(u8_mCanSendDataBmsNumber==BMSDATA_NUMBER_ALLDEVICES)u8_mCanSendDataBmsNumber=0;
 }
 
-} // namespace inverters
+} // namespace inverter

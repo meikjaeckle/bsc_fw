@@ -7,26 +7,25 @@
 #define HEADER_70BD43F6E23D41239F3E530DA2C0BDA1
 
 #include <cstdint>
-#include <inverters/IDataReadAdapter.hpp>
+#include <inverter/DataAdapter.hpp>
 
-namespace inverters
+namespace inverter
 {
 
 /**
  * @brief Interface for the inverter control module.
- *
  */
-struct IInverterControl
+struct Inverter
 {
-  virtual ~IInverterControl() = default;
+  virtual ~Inverter() = default;
 
-  virtual const IDataReadAdapter& getDataReadAdapter() const = 0;
+  virtual const DataAdapter& getDataAdapter() const = 0;
 
   virtual void setChargeCurrentToZero(bool val) = 0;
   virtual void setDischargeCurrentToZero(bool val) = 0;
   virtual void setSocToFull(bool val) = 0;
 };
 
-} // namespace inverters
+} // namespace inverter
 
 #endif // HEADER_70BD43F6E23D41239F3E530DA2C0BDA1

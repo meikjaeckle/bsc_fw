@@ -6,10 +6,10 @@
 #pragma once
 
 #include <cstdint>
-#include "inverters/Inverter.hpp"
+#include <inverter/InverterData.hpp>
 
 
-namespace inverters
+namespace inverter
 {
 class ChargeCurrentCtrl
 {
@@ -37,4 +37,4 @@ class ChargeCurrentCtrl
   int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
   #endif
 };
-} // namespace inverters
+} // namespace inverter

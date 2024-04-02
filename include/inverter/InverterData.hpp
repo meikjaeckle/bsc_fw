@@ -7,9 +7,9 @@
 #define HEADER_8747956FAC7243B89F4FE9343AF840A0
 
 #include <cstdint>
-#include <inverters/InverterTypes.hpp>
+#include <inverter/InverterTypes.hpp>
 
-namespace inverters
+namespace inverter
 {
 
 struct InverterData
@@ -45,6 +45,6 @@ struct InverterData
   uint16_t socZellspannungSperrzeitTimer{};
 };
 
-} // namespace inverters
+} // namespace inverter
 
 #endif // HEADER_8747956FAC7243B89F4FE9343AF840A0

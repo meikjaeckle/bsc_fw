@@ -9,13 +9,13 @@
 #include "Arduino.h"
 #include "defines.h"
 
-namespace inverters
+namespace inverter
 {
-struct IDataReadAdapter; // Forward-Deklaration
+struct DataAdapter; // Forward-Deklaration
 }
 
 void i2cInit();
-void i2cCyclicRun(const inverters::IDataReadAdapter& dataAdapter);
+void i2cCyclicRun(const inverter::DataAdapter& dataAdapter);
 void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const String& data);
 

@@ -6,10 +6,10 @@
 #pragma once
 
 #include <cstdint>
-#include "inverters/Inverter.hpp"
+#include <inverter/InverterData.hpp>
 
 
-namespace inverters
+namespace inverter
 {
 class DisChargeCurrentCtrl
 {
@@ -19,4 +19,4 @@ class DisChargeCurrentCtrl
   private:
   int16_t calcEntladestromZellspanung(InverterData &inverterData, int16_t i16_pMaxDischargeCurrent);
 };
-} // namespace inverters
+} // namespace inverter

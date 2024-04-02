@@ -8,7 +8,7 @@
 #include "defines.h"
 #include "log.h"
 #include "WebSettings.h"
-#include "inverters/Inverter.hpp"
+#include <inverter/DataAdapter.hpp>
 #include "AlarmRules.h"
 #include "BmsData.h"
 #include "mcp23017.h"
@@ -30,7 +30,7 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 
 
 void isI2CdeviceConn();
-void displaySendData_bms(const inverters::IDataReadAdapter& dataAdapter);
+void displaySendData_bms(const inverter::DataAdapter& dataAdapter);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
 void i2cInitExtSerial();
@@ -171,7 +171,7 @@ bool isSerialExtEnabled()
 }
 
 
-void i2cCyclicRun(const inverters::IDataReadAdapter& dataAdapter)
+void i2cCyclicRun(const inverter::DataAdapter& dataAdapter)
 {
   if(u8_mMasterSlaveId==ID_I2C_MASTER)
   {
@@ -393,7 +393,7 @@ void i2cSendDataToMaster()
 /******************************************************
  * Display
  ******************************************************/
-void displaySendData_bms(const inverters::IDataReadAdapter& dataAdapter)
+void displaySendData_bms(const inverter::DataAdapter& dataAdapter)
 {
   for(uint8_t i=0;i<BT_DEVICES_COUNT-2;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
   {

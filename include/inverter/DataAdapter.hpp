@@ -7,16 +7,20 @@
 #define HEADER_1AC1E27ED8674A41AAD7A178FEDF0C34
 
 #include <cstdint>
-#include <kernelapi/rtos/RecursiveMutex.hpp>
-#include <inverters/InverterData.hpp>
-#include <inverters/InverterTypes.hpp>
+#include <inverter/InverterData.hpp>
+#include <inverter/InverterTypes.hpp>
 
-namespace inverters
+namespace rtos
+{
+  class RecursiveMutex;
+}
+
+namespace inverter
 {
 
-struct IDataReadAdapter
+struct DataAdapter
 {
-  virtual ~IDataReadAdapter() = default;
+  virtual ~DataAdapter() = default;
 
   virtual rtos::RecursiveMutex& getMutex() = 0;
 
@@ -56,6 +60,6 @@ struct IDataReadAdapter
   virtual uint16_t getSocZellspannungSperrzeitTimer() const = 0;  // TODO MEJ not used
 };
 
-} // namespace inverters
+} // namespace inverter
 
 #endif // HEADER_1AC1E27ED8674A41AAD7A178FEDF0C34

@@ -11,12 +11,12 @@
 // forward declarations
 class WebServer;
 
-namespace inverters
+namespace inverter
 {
-class IDataReadAdapter;
+class DataAdapter;
 }
 
-void buildJsonRest(const inverters::IDataReadAdapter& dataAdapter, WebServer& server);
+void buildJsonRest(const inverter::DataAdapter& dataAdapter, WebServer& server);
 void handle_setParameter(WebServer& server);
 
 #endif

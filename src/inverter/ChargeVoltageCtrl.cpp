@@ -3,15 +3,15 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "inverters/ChargeVoltageCtrl.hpp"
+#include <inverter/ChargeVoltageCtrl.hpp>
 #include <bms/utils/BmsDataUtils.hpp>
 #include "defines.h"
 #include "WebSettings.h"
 
-namespace inverters
+namespace inverter
 {
 
-void ChargeVoltageCtrl::calcChargeVoltage(inverters::InverterData &inverterData)
+void ChargeVoltageCtrl::calcChargeVoltage(inverter::InverterData &inverterData)
 {
   uint16_t u16_lChargeVoltage = (uint16_t)WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0);
   u16_lChargeVoltage = calcDynamicReduceChargeVoltage(inverterData, u16_lChargeVoltage);
@@ -21,7 +21,7 @@ void ChargeVoltageCtrl::calcChargeVoltage(inverters::InverterData &inverterData)
 
 
 /* */
-uint16_t ChargeVoltageCtrl::calcDynamicReduceChargeVoltage(inverters::InverterData &inverterData, uint16_t u16_lChargeVoltage)
+uint16_t ChargeVoltageCtrl::calcDynamicReduceChargeVoltage(inverter::InverterData &inverterData, uint16_t u16_lChargeVoltage)
 {
   static uint16_t u16_lDynamicChargeVoltage = u16_lChargeVoltage;
 
@@ -53,4 +53,4 @@ uint16_t ChargeVoltageCtrl::calcDynamicReduceChargeVoltage(inverters::InverterDa
   }
   return u16_lChargeVoltage;
 }
-} // namespace inverters
+} // namespace inverter

@@ -3,12 +3,14 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "inverters/InverterBattery.hpp"
-#include <bms/utils/BmsDataUtils.hpp>
+#include "BmsData.h"
 #include "defines.h"
+#include "Ow.h"
 #include "WebSettings.h"
+#include "inverter/InverterBattery.hpp"
+#include "bms/utils/BmsDataUtils.hpp"
 
-namespace inverters
+namespace inverter
 {
   void InverterBattery::getBatteryVoltage(InverterData& inverterData)
   {
@@ -105,4 +107,4 @@ namespace inverters
       return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0));  //Im Fehlerfall immer Sensor 0 des BMS nehmen
     }
   }
-} // namespace inverters
+} // namespace inverter

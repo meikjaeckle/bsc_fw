@@ -6,11 +6,10 @@
 #pragma once
 
 #include <cstdint>
-#include "inverters/Inverter.hpp"
-#include "inverters/InverterData.hpp"
+#include <inverter/InverterData.hpp>
 
 
-namespace inverters
+namespace inverter
 {
 
 class SocCtrl
@@ -21,4 +20,4 @@ class SocCtrl
   private:
   uint8_t getNewSocByMinCellVoltage(InverterData &inverterData, uint8_t u8_lSoc);
 };
-} // namespace inverters
+} // namespace inverter

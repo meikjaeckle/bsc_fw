@@ -6,14 +6,15 @@
 #pragma once
 
 #include <cstdint>
-#include "inverters/Inverter.hpp"
+#include <inverter/InverterData.hpp>
 
 
-namespace inverters
+namespace inverter
 {
 class InverterBattery
 {
   public:
+  // TODO MEJ rename following methods and add real getters!
   void getBatteryVoltage(InverterData &inverterData);
   void getBatteryCurrent(InverterData &inverterData);
   int16_t getBatteryTemp(const InverterData& inverterData);
@@ -23,4 +24,4 @@ class InverterBattery
   bool _isOneBatteryPackOnline;
 
 };
-} // namespace inverters
+} // namespace inverter

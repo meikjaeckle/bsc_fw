@@ -37,8 +37,9 @@
 #endif
 
 #include "defines.h"
-#include "inverters/Inverter.hpp"
-#include "inverters/Canbus.hpp"
+#include <inverter/Inverter.hpp>
+#include <inverter/InverterCtrl.hpp>
+#include <inverter/Canbus.hpp>
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "params.h"
@@ -72,9 +73,9 @@ static const char *TAG = "MAIN";
 
 WebServer server;
 BleHandler bleHandler;
-BscSerial bscSerial;   // Serial
-inverters::Canbus bmsCan;
-inverters::Inverter inverter(bmsCan);
+BscSerial bscSerial; // Serial
+inverter::Canbus bmsCan;
+inverter::InverterCtrl inverterCtrl(bmsCan);
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -704,12 +705,12 @@ void task_alarmRules(void *param)
   BSC_LOGD(TAG, "-> 'task_alarmRules' runs on core %d", xPortGetCoreID());
 
   vTaskDelay(pdMS_TO_TICKS(15000));
-  initAlarmRules(inverter);
+  initAlarmRules(inverterCtrl);
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    runAlarmRules(inverter);
+    runAlarmRules(inverterCtrl);
     xSemaphoreTake(mutexTaskRunTime_alarmrules, portMAX_DELAY);
     lastTaskRun_alarmrules=millis();
     xSemaphoreGive(mutexTaskRunTime_alarmrules);
@@ -737,12 +738,12 @@ void task_canbusTx(void *param)
 {
   BSC_LOGD(TAG, "-> 'task_canbusTx' runs on core %d", xPortGetCoreID());
 
-  inverter.init();
+  inverterCtrl.init();
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    inverter.cyclicRun();
+    inverterCtrl.cyclicRun();
     if(xSemaphoreTake(mutexTaskRunTime_can, 100))
     {
       lastTaskRuncanbusTx=millis();
@@ -777,14 +778,14 @@ void task_i2c(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(2000));
-    i2cCyclicRun(inverter.getDataReadAdapter()); //Sende Daten zum Display
+    i2cCyclicRun(inverterCtrl.getDataAdapter()); //Sende Daten zum Display
 
     if(changeWlanDataForI2C)
     {
       changeWlanDataForI2C=false;
       const String ipAddr {(WiFi.getMode()==WIFI_MODE_AP) ? "192.168.4.1" : WiFi.localIP().toString()};
 
-      //i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16); // TODO MEJ data size not required for string, could result fault memory access!
+      //i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16); // TODO MEJ data size not required for string, could result in faulty memory access!
       i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr); // TODO MEJ does the i2c receiver expect always 16 chars, as set above ??
     }
 
@@ -911,7 +912,7 @@ void handle_paramBmsToInverter()
   webSettingsBmsToInverter.handleHtmlFormRequest(&server);
   if (server.hasArg("SAVE"))
   {
-    inverter.loadInverterSettings();
+    inverterCtrl.loadInverterSettings();
   }
 }
 
@@ -1072,7 +1073,7 @@ void handle_getOwTempData()
 
 void handle_getBscLiveData()
 {
-  buildJsonRest(inverter.getDataReadAdapter(), server);
+  buildJsonRest(inverterCtrl.getDataAdapter(), server);
 }
 
 
@@ -1304,7 +1305,7 @@ void setup()
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
   server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
-  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter.getDataReadAdapter(), server);});
+  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverterCtrl.getDataAdapter(), server);});
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(server);});
 
   server.on("/settings/system/",handle_paramSystem);
@@ -1416,7 +1417,7 @@ void loop()
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 
-  logValues(inverter.getDataReadAdapter());
+  logValues(inverterCtrl.getDataAdapter());
 
   #ifdef LOG_BMS_DATA
   if(millis()-debugLogTimer>=10000)

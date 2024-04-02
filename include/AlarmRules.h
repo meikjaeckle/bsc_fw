@@ -9,13 +9,13 @@
 
 #include <cstdint>
 
-namespace inverters
+namespace inverter
 {
-class IInverterControl;
+class Inverter;
 }
 
-void initAlarmRules(inverters::IInverterControl& /* inverter */);
-void runAlarmRules(inverters::IInverterControl& inverter);
+void initAlarmRules(inverter::Inverter& /* inverter */);
+void runAlarmRules(inverter::Inverter& inverter);
 void changeAlarmSettings();
 
 bool getAlarm(uint8_t alarmNr);

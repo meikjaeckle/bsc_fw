@@ -16,8 +16,8 @@
 #include "bscTime.h"
 #include "BmsData.h"
 #include "WebSettings.h"
-#include <inverters/IDataReadAdapter.hpp>
-#include <inverters/InverterData.hpp>
+#include <inverter/DataAdapter.hpp>
+#include <inverter/InverterData.hpp>
 #include "log.h"
 
 static const char *TAG = "LOG";
@@ -307,7 +307,7 @@ void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
 }
 
 
-void logValues(const inverters::IDataReadAdapter& dataAdapter)
+void logValues(const inverter::DataAdapter& dataAdapter)
 {
   static uint8_t u8_lGetMinutesOld {0};
 
@@ -346,7 +346,7 @@ void logValues(const inverters::IDataReadAdapter& dataAdapter)
   };
 
   // Get a copy of the whole InverterData struct
-  const inverters::InverterData inverterData = std::move(dataAdapter.getInverterData());
+  const inverter::InverterData inverterData = std::move(dataAdapter.getInverterData());
 
   fsLock();
   spiffsValueLogFile.seek(timeMinutes*VALUE_LOG_DATASET_SIZE,SeekSet);

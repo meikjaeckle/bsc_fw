@@ -6,15 +6,16 @@
 #include <algorithm>
 #include <array>
 
-#include "inverters/DisChargeCurrentCtrl.hpp"
-#include <bms/utils/BmsDataUtils.hpp>
+#include "BmsData.h"
 #include "defines.h"
 #include "WebSettings.h"
+#include "inverter/DisChargeCurrentCtrl.hpp"
+#include "bms/utils/BmsDataUtils.hpp"
 
-namespace inverters
+namespace inverter
 {
 
-void DisChargeCurrentCtrl::calcDisChargCurrent(inverters::InverterData &inverterData, bool alarmSetDischargeCurrentToZero)
+void DisChargeCurrentCtrl::calcDisChargCurrent(inverter::InverterData &inverterData, bool alarmSetDischargeCurrentToZero)
 {
   std::array<int16_t, 1> maxDischargeCurrentList {};
   int16_t newDisChargeCurrent {0};
@@ -74,7 +75,7 @@ void DisChargeCurrentCtrl::calcDisChargCurrent(inverters::InverterData &inverter
 /*******************************************************************************************************
  * Berechnet der Maximalzulässigen Entladestrom anhand der eigestellten Zellspannungsparameter
  *******************************************************************************************************/
-int16_t DisChargeCurrentCtrl::calcEntladestromZellspanung(inverters::InverterData &inverterData, int16_t i16_pMaxDischargeCurrent)
+int16_t DisChargeCurrentCtrl::calcEntladestromZellspanung(inverter::InverterData &inverterData, int16_t i16_pMaxDischargeCurrent)
 {
   uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,DT_ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG);
 
@@ -117,4 +118,4 @@ int16_t DisChargeCurrentCtrl::calcEntladestromZellspanung(inverters::InverterDat
   return i16_pMaxDischargeCurrent;
 }
 
-} // namespace inverters
+} // namespace inverter

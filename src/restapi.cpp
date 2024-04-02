@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "restapi.h"
-#include "inverters/InverterData.hpp"
-#include "inverters/IDataReadAdapter.hpp"
+#include <inverter/InverterData.hpp>
+#include <inverter/DataAdapter.hpp>
 #include "BmsData.h"
 #include "Ow.h"
 #include "Json.h"
@@ -93,7 +93,7 @@ const char JSON_BMS_BT_1[] PROGMEM ="\"bms_bt\":[%s]";
 const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
 
 
-void buildJsonRest(const inverters::IDataReadAdapter& dataAdapter, WebServer& server)
+void buildJsonRest(const inverter::DataAdapter& dataAdapter, WebServer& server)
 {
   if(server.args()>0)
   {
@@ -141,7 +141,7 @@ void buildJsonRest(const inverters::IDataReadAdapter& dataAdapter, WebServer& se
 
     {
       // Get a copy of the whole InverterData struct
-      const inverters::InverterData inverterData = std::move(dataAdapter.getInverterData());
+      const inverter::InverterData inverterData = std::move(dataAdapter.getInverterData());
 
       genJsonEntryArray(entrySingle, F("current"),         inverterData.batteryCurrent,              str_htmlOut, false);
       genJsonEntryArray(entrySingle, F("voltage"),         inverterData.batteryVoltage,              str_htmlOut, false);

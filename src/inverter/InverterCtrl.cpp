@@ -4,14 +4,14 @@
 // https://opensource.org/licenses/MIT
 
 #include <freertos/FreeRTOS.h>
-#include "inverters/Inverter.hpp"
 #include <bms/utils/BmsDataUtils.hpp>
-#include "inverters/ChargeCurrentCtrl.hpp"
-#include "inverters/DisChargeCurrentCtrl.hpp"
-#include "inverters/ChargeVoltageCtrl.hpp"
-#include "inverters/SocCtrl.hpp"
-#include "inverters/InverterBattery.hpp"
-#include "inverters/Canbus.hpp"
+#include <inverter/ChargeCurrentCtrl.hpp>
+#include <inverter/DisChargeCurrentCtrl.hpp>
+#include <inverter/ChargeVoltageCtrl.hpp>
+#include <inverter/SocCtrl.hpp>
+#include <inverter/InverterBattery.hpp>
+#include <inverter/Canbus.hpp>
+#include <inverter/InverterCtrl.hpp>
 
 #include "WebSettings.h"
 #include "defines.h"
@@ -21,15 +21,15 @@
 #include "log.h"
 #include "AlarmRules.h"
 
-namespace inverters
+namespace inverter
 {
 
 namespace // anonymous
 {
-constexpr const char TAG[] = "Inverter";
+constexpr const char TAG[] = "InverterCtrl";
 }
 
-Inverter::Inverter(Canbus& can) :
+InverterCtrl::InverterCtrl(Canbus& can) :
   _inverterDataMutex {xSemaphoreCreateMutex()},
   _bmsCan {can},
   _mMqttTxTimer{0},
@@ -41,12 +41,12 @@ Inverter::Inverter(Canbus& can) :
   _dataReadAdapter.Update(_inverterData); // Initially copy the inverter data to the adapter, event if ther is no difference actually
 }
 
-Inverter::~Inverter()
+InverterCtrl::~InverterCtrl()
 {
   vSemaphoreDelete(_inverterDataMutex);
 }
 
-void Inverter::init()
+void InverterCtrl::init()
 {
   //u8_mBmsDatasource=0;
   _alarmSetChargeCurrentToZero=false;
@@ -61,18 +61,18 @@ void Inverter::init()
 }
 
 
-void Inverter::inverterDataSemaphoreTake()
+void InverterCtrl::inverterDataSemaphoreTake()
 {
   xSemaphoreTake(_inverterDataMutex, portMAX_DELAY);
 }
 
 
-void Inverter::inverterDataSemaphoreGive()
+void InverterCtrl::inverterDataSemaphoreGive()
 {
   xSemaphoreGive(_inverterDataMutex);
 }
 
-void Inverter::loadInverterSettings()
+void InverterCtrl::loadInverterSettings()
 {
   // TODO MEJ just add a flag to signal that settings shall be loaded on next iteration in cyclicRun.
 
@@ -110,28 +110,28 @@ void Inverter::loadInverterSettings()
 
 
 //Ladeleistung auf 0 einstellen
-void Inverter::setChargeCurrentToZero(bool val)
+void InverterCtrl::setChargeCurrentToZero(bool val)
 {
   _alarmSetChargeCurrentToZero = val;
 }
 
 
 //Entladeleistung auf 0 einstellen
-void Inverter::setDischargeCurrentToZero(bool val)
+void InverterCtrl::setDischargeCurrentToZero(bool val)
 {
   _alarmSetDischargeCurrentToZero = val;
 }
 
 
 //SOC auf 100 einstellen
-void Inverter::setSocToFull(bool val)
+void InverterCtrl::setSocToFull(bool val)
 {
   _alarmSetSocToFull = val;
 }
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
-void Inverter::cyclicRun()
+void InverterCtrl::cyclicRun()
 {
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_ENABLE,0))
   {
@@ -151,11 +151,11 @@ void Inverter::cyclicRun()
     _inverterData.noBatteryPackOnline = true;
 
   // copy local _inverterData to read adapter,
-  // to make the inverter data public available through the IDataReadAdapter interface
+  // to make the inverter data public available through the DataAdapter interface
   _dataReadAdapter.Update(_inverterData);
 }
 
-void Inverter::updateInverterValues()
+void InverterCtrl::updateInverterValues()
 {
   // Ladespannung
   ChargeVoltageCtrl chargeVoltageCtrl;
@@ -182,7 +182,7 @@ void Inverter::updateInverterValues()
 }
 
 
-void Inverter::sendMqttMsg()
+void InverterCtrl::sendMqttMsg()
 {
   if(_mMqttTxTimer == 15)
   {
@@ -201,4 +201,4 @@ void Inverter::sendMqttMsg()
   }
 }
 
-} // namespace inverters
+} // namespace inverter

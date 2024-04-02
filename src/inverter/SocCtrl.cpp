@@ -3,17 +3,17 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+#include "BmsData.h"
 #include "defines.h"
 
 #include "WebSettings.h"
 #include <bms/utils/BmsDataUtils.hpp>
-#include "inverters/Inverter.hpp"
-#include "inverters/InverterData.hpp"
-#include "inverters/SocCtrl.hpp"
+#include <inverter/InverterData.hpp>
+#include <inverter/SocCtrl.hpp>
 
-namespace inverters
+namespace inverter
 {
-  void SocCtrl::calcSoc(inverters::InverterData &inverterData, bool alarmSetSocToFull)
+  void SocCtrl::calcSoc(inverter::InverterData &inverterData, bool alarmSetSocToFull)
   {
     uint16_t u16_lNewSoc=0;
 
@@ -94,7 +94,7 @@ namespace inverters
   * Wenn die eingestellte mindest-Zellspannung unterschritten wird, dann kann ein belibiger SoC
   * an den Wechselrichter gesendet werden. Hiermit kann ein Nachladen erzwungen werden.
   * *******************************************************************************************/
-  uint8_t SocCtrl::getNewSocByMinCellVoltage(inverters::InverterData &inverterData, uint8_t u8_lSoc)
+  uint8_t SocCtrl::getNewSocByMinCellVoltage(inverter::InverterData &inverterData, uint8_t u8_lSoc)
   {
     //Wenn Zellspannung unterschritten wird, dann SoC x% an Inverter senden
     switch(inverterData.socZellspannungState)
@@ -143,4 +143,4 @@ namespace inverters
 
     return u8_lSoc;
   }
-} // namespace inverters
+} // namespace inverter

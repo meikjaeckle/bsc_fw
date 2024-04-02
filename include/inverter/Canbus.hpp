@@ -6,9 +6,9 @@
 #pragma once
 
 #include <cstdint>
-#include <inverters/InverterData.hpp>
+#include <inverter/InverterData.hpp>
 
-namespace inverters
+namespace inverter
 {
 class Canbus
 {
@@ -18,7 +18,7 @@ class Canbus
   public:
   void init();
   void readCanMessages();
-  void sendBmsCanMessages(const inverters::InverterData& inverterData);
+  void sendBmsCanMessages(const inverter::InverterData& inverterData);
 
   private:
   struct data351
@@ -89,4 +89,4 @@ class Canbus
 
   void onCanReceive(int packetSize);
 };
-} // namespace inverters
+} // namespace inverter

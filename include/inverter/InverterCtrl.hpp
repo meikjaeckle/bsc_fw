@@ -6,10 +6,10 @@
 #pragma once
 
 #include <cstdint>
-#include <inverters/DataReadAdapter.hpp>
-#include <inverters/IDataReadAdapter.hpp>
-#include <inverters/IInverterControl.hpp>
-#include <inverters/InverterData.hpp>
+#include <inverter/DataAdapter.hpp>
+#include <inverter/Inverter.hpp>
+#include <inverter/InverterData.hpp>
+#include <inverter/InverterDataAdapter.hpp>
 #ifndef PIO_UNIT_TESTING
 #include "WebSettings.h"
 #endif
@@ -23,17 +23,17 @@
 #endif
 
 
-namespace inverters
+namespace inverter
 {
 
 class Canbus; // forward declaration
 
-class Inverter :
-  public IInverterControl
+class InverterCtrl :
+  public Inverter
 {
   public:
-  Inverter(Canbus& can);
-  ~Inverter();
+  InverterCtrl(Canbus& can);
+  ~InverterCtrl();
 
   public:
   void init();
@@ -41,10 +41,10 @@ class Inverter :
   void cyclicRun();
 
 
-  // IInverterControl interface methods
+  // Inverter interface methods
   public:
-  /** @returns the reference to the IDataReadAdapter */
-  inline const IDataReadAdapter& getDataReadAdapter() const override { return _dataReadAdapter; }
+  /** @returns the reference to the DataAdapter */
+  inline const DataAdapter& getDataAdapter() const override { return _dataReadAdapter; }
   void setChargeCurrentToZero(bool val) override;
   void setDischargeCurrentToZero(bool val) override;
   void setSocToFull(bool val) override;
@@ -53,17 +53,17 @@ class Inverter :
   void inverterDataSemaphoreTake();
   void inverterDataSemaphoreGive();
   void updateInverterValues();
-  void sendMqttMsg(); // TODO MEJ I would move this method out of the inverter class. This just takes another dependency but mqtt is not the main task of the Inverter.
+  void sendMqttMsg(); // TODO MEJ I would move this method out of the inverter class. This just takes another dependency but mqtt is not the main task of the InverterCtrl.
 
   private:
   mutable SemaphoreHandle_t _inverterDataMutex; // TODO MEJ still required???
   Canbus& _bmsCan;
 
   InverterData _inverterData;
-  DataReadAdapter _dataReadAdapter;
+  InverterDataAdapter _dataReadAdapter;
   uint8_t _mMqttTxTimer;
   bool _alarmSetChargeCurrentToZero;
   bool _alarmSetDischargeCurrentToZero;
   bool _alarmSetSocToFull;
 };
-} // namespace inverters
+} // namespace inverter
